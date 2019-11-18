@@ -25,6 +25,7 @@ Bug fixes:
 * Process#exec: set close-on-exec to false for fd redirection (#1805, @XrXr, @rafaelfranca).
 * Building C extensions should now work with frozen string literals (#1786).
 * Keep the Truffle working directory in sync with the native working directory.
+* Rename `to_native` to `polyglot_to_native` to match `polyglot_pointer?` and `polyglot_address` methods. 
 
 Compatibility:
 
@@ -42,6 +43,7 @@ Performance:
 * Enable inline caching of symbol conversion for `rb_iv_get` and `rb_iv_set`.
 * `rb_type` information is now cached on classes as a hidden variable to improve performance.
 * Change to using thread local buffers for socket calls to reduce allocations.
+* Refactor `IO.select` to reduce copying and optimisation boundaries.
 
 # 19.3.0
 

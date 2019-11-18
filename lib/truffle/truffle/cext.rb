@@ -99,8 +99,7 @@ module Truffle::CExt
     end
 
     # Every IS_POINTER object should also have TO_NATIVE
-    def to_native
-      self
+    def polyglot_to_native
     end
 
     def polyglot_address
@@ -162,8 +161,7 @@ module Truffle::CExt
     end
 
     # Every IS_POINTER object should also have TO_NATIVE
-    def to_native
-      self
+    def polyglot_to_native
     end
 
     def [](index)
@@ -202,8 +200,7 @@ module Truffle::CExt
     end
 
     # Every IS_POINTER object should also have TO_NATIVE
-    def to_native
-      self
+    def polyglot_to_native
     end
 
     def [](index)
@@ -237,8 +234,7 @@ module Truffle::CExt
     end
 
     # Every IS_POINTER object should also have TO_NATIVE
-    def to_native
-      self
+    def polyglot_to_native
     end
   end
 
