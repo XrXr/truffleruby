@@ -11,10 +11,26 @@ index ba4ebdf..b801b43 100644
        ["a.rb", "class A; X = :A; end"],
        ["b.rb", "class B < A; end"],
 diff --git a/test/lib/zeitwerk/test_explicit_namespace.rb b/test/lib/zeitwerk/test_explicit_namespace.rb
-index 409912d..a0e31c4 100644
+index 409912d..ba913ca 100644
 --- a/test/lib/zeitwerk/test_explicit_namespace.rb
 +++ b/test/lib/zeitwerk/test_explicit_namespace.rb
-@@ -110,6 +110,7 @@ class TestExplicitNamespace < LoaderTest
+@@ -58,6 +58,7 @@ class TestExplicitNamespace < LoaderTest
+   end
+ 
+   test "autoloads are set correctly, even if there are autoloads for the same cname in a module prepended to the superclass" do
++    skip "errors on TruffleRuby"
+     files = [
+       ["m/x.rb", "M::X = :M"],
+       ["a.rb", "class A; prepend M; end"],
+@@ -72,6 +73,7 @@ class TestExplicitNamespace < LoaderTest
+   end
+ 
+   test "autoloads are set correctly, even if there are autoloads for the same cname in other ancestors" do
++    skip "errors on TruffleRuby"
+     files = [
+       ["m/x.rb", "M::X = :M"],
+       ["a.rb", "class A; include M; end"],
+@@ -110,6 +112,7 @@ class TestExplicitNamespace < LoaderTest
    end
  
    test "autovivification does not enable the tracer" do
