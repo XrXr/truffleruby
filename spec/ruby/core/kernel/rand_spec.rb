@@ -140,12 +140,13 @@ describe "Kernel.rand" do
   end
 
   it "is random on boot" do
-    results = 2.times.map { ruby_exe('p rand', options: '--disable-gems') }
+    results = 2.times.map {
+      out = ruby_exe('p rand', options: '--disable-gems')
+      Float(out)
+    }
     results.size.should == 2
-    parsed = nil
-    -> { parsed = results.map(&method(:Float)) }.should_not raise_error
     # this is technically flaky, but very unlikely in a good distribution
-    parsed[0].should_not == parsed[1]
+    results[0].should_not == results[1]
   end
 end
 

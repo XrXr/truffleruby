@@ -106,7 +106,7 @@ environment, for example by unmounting system filesystems such as `/dev/shm`.
 
 ## Dependencies
 
-* [make](doc/user/installing-llvm.md) for building C and C++ extensions.
+* [make, gcc and libxml2](doc/user/installing-llvm.md) for building C and C++ extensions.
 * [libssl](doc/user/installing-libssl.md) for the `openssl` C extension
 * [zlib](doc/user/installing-zlib.md) for the `zlib` C extension
 
@@ -149,7 +149,7 @@ to contribute to TruffleRuby.
 ## Contact
 
 The best way to get in touch with us is to join the channel `#truffleruby` of the
-[GraalVM Slack](https://join.slack.com/t/graalvm/shared_invite/enQtNzk0NTc5MzUyNzg5LTAwY2YyODQ4MzJjMGJjZGQzMWY2ZDA3NWI3YzEzNDRlNGQ1MTZkYzkzM2JkYjIxMTY2NGQzNjUxOGQzZGExZmU).
+[GraalVM Slack](https://www.graalvm.org/community/#community-support).
 You can also Tweet to [@TruffleRuby](https://twitter.com/truffleruby), or email
 benoit.daloze@oracle.com.
 

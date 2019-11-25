@@ -26,6 +26,9 @@ Bug fixes:
 * Building C extensions should now work with frozen string literals (#1786).
 * Keep the Truffle working directory in sync with the native working directory.
 * Rename `to_native` to `polyglot_to_native` to match `polyglot_pointer?` and `polyglot_address` methods. 
+* Fixed missing partial evaluation boundary in `Array#{sort,sort!}` (#1727).
+* Fixed the class of `self` and the wrapping `Module` for `Kernel#load(path, wrap=true)` (#1739).
+* Fixed missing polyglot type declaration for `RSTRING_PTR` to help with native/managed interop.
 
 Compatibility:
 
@@ -35,6 +38,7 @@ Compatibility:
 * Implemented the `unit` argument of `Time.at` (#1791, @XrXr).
 * Implemented `keyword_init: true` for `Struct.new` (#1789, @XrXr).
 * Implemented `MatchData#dup` (#1792, @XrXr).
+* Implemented a native storage strategy for arrays to allow better C extension compatibility.
 
 Performance:
 
@@ -44,6 +48,7 @@ Performance:
 * `rb_type` information is now cached on classes as a hidden variable to improve performance.
 * Change to using thread local buffers for socket calls to reduce allocations.
 * Refactor `IO.select` to reduce copying and optimisation boundaries.
+* Refactor various `String` and `Rope` nodes to avoid Truffle performance warnings.
 
 # 19.3.0
 
