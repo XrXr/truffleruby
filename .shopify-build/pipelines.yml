@@ -163,6 +163,9 @@ pipelines:
       - <<: *protobuf_test
       - <<: *zeitwerk_test
       - <<: *truffle_run
+        label: Build semian
+        run: .shopify-build/test-gem.sh semian
+      - <<: *truffle_run
         label: Run mysql2 basic tests
         services:
           mysql: '5.7'
