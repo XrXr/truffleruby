@@ -30,11 +30,11 @@ TRUFFLERUBY_DIR = File.expand_path('../..', File.realpath(__FILE__))
 GRAAL_DIR = File.expand_path('../graal-shopify', TRUFFLERUBY_DIR)
 PROFILES_DIR = "#{TRUFFLERUBY_DIR}/profiles"
 
-TRUFFLERUBY_GEM_TEST_PACK_VERSION = '91ca6dfb6eb4752fab63760128b2b69086f3ea39'
+TRUFFLERUBY_GEM_TEST_PACK_VERSION = '9c09023af9c8d601b2850b3649c725eb9c0a5061'
 
 JDEBUG = '--vm.agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=y'
 METRICS_REPS = Integer(ENV['TRUFFLERUBY_METRICS_REPS'] || 10)
-DEFAULT_PROFILE_OPTIONS = %w[--cpusampler --cpusampler.SampleInternal=true --cpusampler.Mode=roots --cpusampler.Output=json]
+DEFAULT_PROFILE_OPTIONS = %w[--experimental-options --cpusampler --cpusampler.SampleInternal=true --cpusampler.Mode=roots --cpusampler.Output=json]
 
 RUBOCOP_INCLUDE_LIST = %w[
   lib/cext
@@ -1950,22 +1950,6 @@ EOS
   end
   alias :'native-launcher' :native_launcher
 
-  private def check_dsl_usage
-    # Change the annotation retention policy in Truffle so we can inspect specializations.
-    raw_sh("find #{GRAAL_DIR}/truffle/ -type f -name '*.java' -exec grep -q 'RetentionPolicy\.CLASS' '{}' \\; -exec sed -i.jtbak 's/RetentionPolicy\.CLASS/RetentionPolicy\.RUNTIME/g' '{}' \\;")
-    begin
-      mx 'clean', '--dependencies', 'org.truffleruby'
-      # We need to build with -parameters to get parameter names.
-      mx 'build', '--dependencies', 'org.truffleruby', '--force-javac', '-A-parameters'
-      # Re-build GraalVM to run the check
-      build_graalvm
-      run_ruby({ 'TRUFFLE_CHECK_DSL_USAGE' => 'true' }, '--lazy-default=false', '-e', 'exit')
-    ensure
-      # Revert the changes we made to the Truffle source.
-      raw_sh("find #{GRAAL_DIR}/truffle/ -name '*.jtbak' -exec sh -c 'mv -f $0 ${0%.jtbak}' '{}' \\;")
-    end
-  end
-
   def rubocop(*args)
     testpack = args.delete('--testpack')
     if args.empty? or args.all? { |arg| arg.start_with?('-') }
@@ -2119,8 +2103,6 @@ EOS
     #  - includes verifylibraryurls though
     #  - building with jdt in the ci definition could be dropped since fullbuild builds with JDT
     mx 'spotbugs'
-
-    check_dsl_usage unless args.delete '--no-build'
 
     check_parser
     check_documentation_urls

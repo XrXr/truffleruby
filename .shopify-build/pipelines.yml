@@ -137,11 +137,6 @@ pipelines:
             scope: "platform-${SHOPIFY_BUILD_PIPELINE_SLUG}"
         run: .shopify-build/build.sh
       - wait
-      - label: Run lint checks
-        timeout: 30m
-        git:
-          history: shallow
-        run: .shopify-build/lint.sh
       - <<: *language_specs
       - <<: *core_specs
       - <<: *library_specs

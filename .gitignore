@@ -27,6 +27,8 @@ nbproject
 conftest
 conftest.c
 Info.plist
+*.log
+*.tmp
 
 bench/chunky_png/oily_png/ext/oily_png/Makefile
 
@@ -78,6 +80,7 @@ test/mri/tests/cext-c/**/mkmf.log
 
 # Diagnostic output directory
 dumps/
+graal_dumps/
 
 # Profiling
 profiles/
