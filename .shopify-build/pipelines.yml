@@ -177,8 +177,11 @@ pipelines:
       - <<: *money_test
       - <<: *nokogiri_test
       - <<: *nokogumbo_test
-      - <<: *snappy_test
+      - <<: *truffle_run
+        label: Install oj
+        run: .shopify-build/test-gem.sh oj
       - <<: *puma_test
+      - <<: *snappy_test
       - <<: *statsd_instrument_test
       - <<: *protobuf_test
       - <<: *zeitwerk_test
