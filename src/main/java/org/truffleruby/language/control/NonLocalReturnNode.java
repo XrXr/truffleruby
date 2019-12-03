@@ -13,20 +13,20 @@ import org.truffleruby.language.RubyNode;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 
-public class ReturnNode extends RubyNode {
+public class NonLocalReturnNode extends RubyNode {
 
-    private final ReturnID returnID;
+    private final NonLocalReturnID returnID;
 
     @Child private RubyNode value;
 
-    public ReturnNode(ReturnID returnID, RubyNode value) {
+    public NonLocalReturnNode(NonLocalReturnID returnID, RubyNode value) {
         this.returnID = returnID;
         this.value = value;
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
-        throw new ReturnException(returnID, value.execute(frame));
+        throw new NonLocalReturnException(returnID, value.execute(frame));
     }
 
 }

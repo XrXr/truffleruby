@@ -11,19 +11,19 @@ package org.truffleruby.language.control;
 
 import com.oracle.truffle.api.nodes.ControlFlowException;
 
-public final class ReturnException extends ControlFlowException {
+public final class LocalReturnException extends ControlFlowException {
 
-    private static final long serialVersionUID = -45053969587014940L;
+    private static final long serialVersionUID = -98757896543565476L;
 
-    private final ReturnID returnID;
+    private final NonLocalReturnID returnID;
     private final Object value;
 
-    public ReturnException(ReturnID returnID, Object value) {
+    public LocalReturnException(NonLocalReturnID returnID, Object value) {
         this.returnID = returnID;
         this.value = value;
     }
 
-    public ReturnID getReturnID() {
+    public NonLocalReturnID getReturnID() {
         return returnID;
     }
 

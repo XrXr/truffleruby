@@ -9,6 +9,6 @@
  */
 package org.truffleruby.language.control;
 
-public class ReturnID {
+public class NonLocalReturnID {
 
 }

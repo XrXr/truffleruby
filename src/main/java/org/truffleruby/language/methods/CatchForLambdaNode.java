@@ -12,12 +12,13 @@ package org.truffleruby.language.methods;
 import org.truffleruby.language.RubyNode;
 import org.truffleruby.language.control.BreakException;
 import org.truffleruby.language.control.BreakID;
+import org.truffleruby.language.control.LocalReturnException;
 import org.truffleruby.language.control.NextException;
+import org.truffleruby.language.control.NonLocalReturnException;
+import org.truffleruby.language.control.NonLocalReturnID;
 import org.truffleruby.language.control.RaiseException;
 import org.truffleruby.language.control.RedoException;
 import org.truffleruby.language.control.RetryException;
-import org.truffleruby.language.control.ReturnException;
-import org.truffleruby.language.control.ReturnID;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.profiles.BranchProfile;
@@ -25,7 +26,7 @@ import com.oracle.truffle.api.profiles.ConditionProfile;
 
 public class CatchForLambdaNode extends RubyNode {
 
-    private final ReturnID returnID;
+    private final NonLocalReturnID returnID;
     private final BreakID breakID;
 
     @Child private RubyNode body;
@@ -36,7 +37,7 @@ public class CatchForLambdaNode extends RubyNode {
     private final BranchProfile redoProfile = BranchProfile.create();
     private final BranchProfile nextProfile = BranchProfile.create();
 
-    public CatchForLambdaNode(ReturnID returnID, BreakID breakID, RubyNode body) {
+    public CatchForLambdaNode(NonLocalReturnID returnID, BreakID breakID, RubyNode body) {
         this.returnID = returnID;
         this.breakID = breakID;
         this.body = body;
@@ -47,7 +48,13 @@ public class CatchForLambdaNode extends RubyNode {
         while (true) {
             try {
                 return body.execute(frame);
-            } catch (ReturnException e) {
+            } catch (LocalReturnException e) {          // XXXXX adapt
+                if (matchingReturnProfile.profile(e.getReturnID() == returnID)) {
+                    return e.getValue();
+                } else {
+                    throw e;
+                }
+            } catch (NonLocalReturnException e) {
                 if (matchingReturnProfile.profile(e.getReturnID() == returnID)) {
                     return e.getValue();
                 } else {

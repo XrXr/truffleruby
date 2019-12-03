@@ -10,8 +10,9 @@
 package org.truffleruby.language.methods;
 
 import org.truffleruby.language.RubyNode;
+import org.truffleruby.language.control.LocalReturnException;
 import org.truffleruby.language.control.RaiseException;
-import org.truffleruby.language.control.ReturnException;
+import org.truffleruby.language.control.NonLocalReturnException;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.profiles.BranchProfile;
@@ -30,7 +31,7 @@ public class CatchReturnAsErrorNode extends RubyNode {
     public Object execute(VirtualFrame frame) {
         try {
             return body.execute(frame);
-        } catch (ReturnException e) {
+        } catch (LocalReturnException | NonLocalReturnException e) {        // XXXXXX which of these is correct?
             retryProfile.enter();
             throw new RaiseException(getContext(), coreExceptions().unexpectedReturn(this));
         }

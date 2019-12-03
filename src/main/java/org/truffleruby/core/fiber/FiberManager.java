@@ -27,8 +27,8 @@ import org.truffleruby.language.RubyGuards;
 import org.truffleruby.language.control.BreakException;
 import org.truffleruby.language.control.ExitException;
 import org.truffleruby.language.control.KillException;
+import org.truffleruby.language.control.NonLocalReturnException;
 import org.truffleruby.language.control.RaiseException;
-import org.truffleruby.language.control.ReturnException;
 import org.truffleruby.language.control.TerminationException;
 import org.truffleruby.language.objects.ObjectIDOperations;
 
@@ -186,7 +186,7 @@ public class FiberManager {
                     fiber,
                     new RaiseException(context, context.getCoreExceptions().breakFromProcClosure(currentNode)),
                     currentNode);
-        } catch (ReturnException e) {
+        } catch (NonLocalReturnException e) {
             sendExceptionToParentFiber(
                     fiber,
                     new RaiseException(context, context.getCoreExceptions().unexpectedReturn(currentNode)),

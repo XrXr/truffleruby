@@ -80,15 +80,16 @@ import org.truffleruby.language.control.ElidableResultNode;
 import org.truffleruby.language.control.FrameOnStackNode;
 import org.truffleruby.language.control.IfElseNode;
 import org.truffleruby.language.control.IfNode;
+import org.truffleruby.language.control.LocalReturnNode;
 import org.truffleruby.language.control.NextNode;
+import org.truffleruby.language.control.NonLocalReturnID;
+import org.truffleruby.language.control.NonLocalReturnNode;
 import org.truffleruby.language.control.NotNode;
 import org.truffleruby.language.control.OnceNode;
 import org.truffleruby.language.control.OrNode;
 import org.truffleruby.language.control.RaiseException;
 import org.truffleruby.language.control.RedoNode;
 import org.truffleruby.language.control.RetryNode;
-import org.truffleruby.language.control.ReturnID;
-import org.truffleruby.language.control.ReturnNode;
 import org.truffleruby.language.control.UnlessNode;
 import org.truffleruby.language.control.WhileNode;
 import org.truffleruby.language.defined.DefinedNode;
@@ -945,7 +946,7 @@ public class BodyTranslator extends Translator {
                     null,
                     false);
 
-            final ReturnID returnId;
+            final NonLocalReturnID returnId;
 
             if (sclass) {
                 returnId = environment.getReturnID();
@@ -1862,7 +1863,7 @@ public class BodyTranslator extends Translator {
                 false);
 
         final ParseEnvironment parseEnvironment = environment.getParseEnvironment();
-        final ReturnID returnID = isLambda ? parseEnvironment.allocateReturnID() : environment.getReturnID();
+        final NonLocalReturnID returnID = isLambda ? parseEnvironment.allocateReturnID() : environment.getReturnID();
 
         final TranslatorEnvironment newEnvironment = new TranslatorEnvironment(
                 environment,
@@ -3076,7 +3077,14 @@ public class BodyTranslator extends Translator {
 
         RubyNode translatedChild = translateNodeOrNil(sourceSection, node.getValueNode());
 
-        final RubyNode ret = new ReturnNode(environment.getReturnID(), translatedChild);
+        final RubyNode ret;
+
+        if (environment.isBlock()) {
+            ret = new NonLocalReturnNode(environment.getReturnID(), translatedChild);
+        } else {
+            ret = new LocalReturnNode(environment.getReturnID(), translatedChild);
+        }
+
         ret.unsafeSetSourceSection(sourceSection);
         return addNewlineIfNeeded(node, ret);
     }
