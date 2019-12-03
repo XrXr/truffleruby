@@ -18,7 +18,7 @@ public class ExceptionTranslatingNode extends RubyNode {
 
     private final UnsupportedOperationBehavior unsupportedOperationBehavior;
 
-    @Child private RubyNode child;
+    @Child public RubyNode child;
     @Child private TranslateExceptionNode translateExceptionNode;
 
     public ExceptionTranslatingNode(RubyNode child, UnsupportedOperationBehavior unsupportedOperationBehavior) {

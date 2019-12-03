@@ -9,6 +9,7 @@
  */
 package org.truffleruby.language.control;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import org.truffleruby.language.RubyNode;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -26,7 +27,12 @@ public class ReturnNode extends RubyNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        throw new ReturnException(returnID, value.execute(frame));
+        Object v = value.execute(frame);
+        if (v.equals(Integer.valueOf(8424))) {
+            CompilerDirectives.transferToInterpreterAndInvalidate();
+            System.err.format("return node %s\n", returnID);
+        }
+        throw new ReturnException(returnID, v);
     }
 
 }

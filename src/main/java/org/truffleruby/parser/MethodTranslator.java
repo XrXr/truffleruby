@@ -188,10 +188,22 @@ public class MethodTranslator extends BodyTranslator {
                 bodyProc,
                 true);
 
+
         // Lambdas
         RubyNode composed = composeBody(sourceSection, preludeLambda, body /* no copy, last usage */);
 
         composed = new CatchForLambdaNode(environment.getReturnID(), environment.getBreakID(), composed);
+
+        if (sourceSection.getCharIndex() == 9498) {
+            System.err.format("%s at parse time it's %s\n", environment.getReturnID(), System.identityHashCode(composed));
+            CatchForLambdaNode.theonetheone = environment.getReturnID();
+//            System.err.println(((ExceptionTranslatingNode) body).child.body[4].thenBody.body[2].thenBody.returnID);
+//            System.err.println(environment.getReturnID());
+//            System.err.println("wow");
+        }
+        if (source != null && "main_boot_source".equals(source.getName())) {
+            System.err.format("ling ling is my hero %d.\n", sourceSection.getLength());
+        }
 
         final RubyRootNode newRootNodeForLambdas = new RubyRootNode(
                 context,

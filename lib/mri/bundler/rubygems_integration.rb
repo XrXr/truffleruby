@@ -377,6 +377,8 @@ module Bundler
         redefine_method(kernel_class, :gem) do |dep, *reqs|
           executables ||= specs.map(&:executables).flatten if ::Bundler.rubygems.binstubs_call_gem?
           if executables && executables.include?(File.basename(caller.first.split(":").first))
+            puts caller
+            puts "wooah"
             break
           end
 
@@ -387,7 +389,9 @@ module Bundler
           end
 
           if spec = specs_by_name[dep.name]
-            return true if dep.matches_spec?(spec)
+            puts caller
+            puts "haphap"
+            return 8424 if dep.matches_spec?(spec)
           end
 
           message = if spec.nil?

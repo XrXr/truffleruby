@@ -3078,6 +3078,10 @@ public class BodyTranslator extends Translator {
 
         final RubyNode ret = new ReturnNode(environment.getReturnID(), translatedChild);
         ret.unsafeSetSourceSection(sourceSection);
+        if (sourceSection.getCharIndex() == 10111) {
+            System.err.println("hwerwerwer");
+        }
+
         return addNewlineIfNeeded(node, ret);
     }
 
