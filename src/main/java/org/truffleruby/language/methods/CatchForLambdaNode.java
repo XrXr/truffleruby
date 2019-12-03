@@ -31,6 +31,7 @@ public class CatchForLambdaNode extends RubyNode {
 
     @Child private RubyNode body;
 
+    private final BranchProfile localReturnProfile = BranchProfile.create();
     private final ConditionProfile matchingReturnProfile = ConditionProfile.createBinaryProfile();
     private final ConditionProfile matchingBreakProfile = ConditionProfile.createBinaryProfile();
     private final BranchProfile retryProfile = BranchProfile.create();
@@ -48,12 +49,9 @@ public class CatchForLambdaNode extends RubyNode {
         while (true) {
             try {
                 return body.execute(frame);
-            } catch (LocalReturnException e) {          // XXXXX adapt
-                if (matchingReturnProfile.profile(e.getReturnID() == returnID)) {
-                    return e.getValue();
-                } else {
-                    throw e;
-                }
+            } catch (LocalReturnException e) {
+                localReturnProfile.enter();
+                return e.getValue();
             } catch (NonLocalReturnException e) {
                 if (matchingReturnProfile.profile(e.getReturnID() == returnID)) {
                     return e.getValue();

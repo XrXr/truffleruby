@@ -15,16 +15,10 @@ public final class LocalReturnException extends ControlFlowException {
 
     private static final long serialVersionUID = -98757896543565476L;
 
-    private final NonLocalReturnID returnID;
     private final Object value;
 
-    public LocalReturnException(NonLocalReturnID returnID, Object value) {
-        this.returnID = returnID;
+    public LocalReturnException(Object value) {
         this.value = value;
-    }
-
-    public NonLocalReturnID getReturnID() {
-        return returnID;
     }
 
     public Object getValue() {

@@ -14,18 +14,15 @@ import org.truffleruby.language.RubyNode;
 
 public class LocalReturnNode extends RubyNode {
 
-    private final NonLocalReturnID returnID;
-
     @Child private RubyNode value;
 
-    public LocalReturnNode(NonLocalReturnID returnID, RubyNode value) {
-        this.returnID = returnID;
+    public LocalReturnNode(RubyNode value) {
         this.value = value;
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
-        throw new LocalReturnException(returnID, value.execute(frame));
+        throw new LocalReturnException(value.execute(frame));
     }
 
 }

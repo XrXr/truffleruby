@@ -26,6 +26,7 @@ public class CatchForMethodNode extends RubyNode {
 
     @Child private RubyNode body;
 
+    private final BranchProfile localReturnProfile = BranchProfile.create();
     private final ConditionProfile matchingReturnProfile = ConditionProfile.createBinaryProfile();
     private final BranchProfile retryProfile = BranchProfile.create();
 
@@ -38,12 +39,9 @@ public class CatchForMethodNode extends RubyNode {
     public Object execute(VirtualFrame frame) {
         try {
             return body.execute(frame);
-        } catch (LocalReturnException e) {          // XXXXXX adapt
-            if (matchingReturnProfile.profile(e.getReturnID() == returnID)) {
-                return e.getValue();
-            } else {
-                throw e;
-            }
+        } catch (LocalReturnException e) {
+            localReturnProfile.enter();
+            return e.getValue();
         } catch (NonLocalReturnException e) {
             if (matchingReturnProfile.profile(e.getReturnID() == returnID)) {
                 return e.getValue();

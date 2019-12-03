@@ -3082,7 +3082,7 @@ public class BodyTranslator extends Translator {
         if (environment.isBlock()) {
             ret = new NonLocalReturnNode(environment.getReturnID(), translatedChild);
         } else {
-            ret = new LocalReturnNode(environment.getReturnID(), translatedChild);
+            ret = new LocalReturnNode(translatedChild);
         }
 
         ret.unsafeSetSourceSection(sourceSection);
