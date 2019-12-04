@@ -10,7 +10,7 @@
 package org.truffleruby.language.methods;
 
 import org.truffleruby.language.RubyNode;
-import org.truffleruby.language.control.LexicalReturnException;
+import org.truffleruby.language.control.LocalReturnException;
 import org.truffleruby.language.control.DynamicReturnException;
 import org.truffleruby.language.control.ReturnID;
 import org.truffleruby.language.control.RaiseException;
@@ -39,7 +39,7 @@ public class CatchForMethodNode extends RubyNode {
     public Object execute(VirtualFrame frame) {
         try {
             return body.execute(frame);
-        } catch (LexicalReturnException e) {
+        } catch (LocalReturnException e) {
             localReturnProfile.enter();
             return e.getValue();
         } catch (DynamicReturnException e) {

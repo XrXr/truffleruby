@@ -10,7 +10,7 @@
 package org.truffleruby.language.methods;
 
 import org.truffleruby.language.RubyNode;
-import org.truffleruby.language.control.LexicalReturnException;
+import org.truffleruby.language.control.LocalReturnException;
 import org.truffleruby.language.control.RaiseException;
 import org.truffleruby.language.control.DynamicReturnException;
 
@@ -31,7 +31,7 @@ public class CatchReturnAsErrorNode extends RubyNode {
     public Object execute(VirtualFrame frame) {
         try {
             return body.execute(frame);
-        } catch (LexicalReturnException | DynamicReturnException e) {        // XXXXXX which of these is correct?
+        } catch (LocalReturnException | DynamicReturnException e) {        // XXXXXX which of these is correct?
             retryProfile.enter();
             throw new RaiseException(getContext(), coreExceptions().unexpectedReturn(this));
         }

@@ -12,7 +12,7 @@ package org.truffleruby.language.methods;
 import org.truffleruby.language.RubyNode;
 import org.truffleruby.language.control.BreakException;
 import org.truffleruby.language.control.BreakID;
-import org.truffleruby.language.control.LexicalReturnException;
+import org.truffleruby.language.control.LocalReturnException;
 import org.truffleruby.language.control.NextException;
 import org.truffleruby.language.control.DynamicReturnException;
 import org.truffleruby.language.control.ReturnID;
@@ -49,7 +49,7 @@ public class CatchForLambdaNode extends RubyNode {
         while (true) {
             try {
                 return body.execute(frame);
-            } catch (LexicalReturnException e) {
+            } catch (LocalReturnException e) {
                 localReturnProfile.enter();
                 return e.getValue();
             } catch (DynamicReturnException e) {

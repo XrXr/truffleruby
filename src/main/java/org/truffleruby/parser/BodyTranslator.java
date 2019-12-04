@@ -80,7 +80,7 @@ import org.truffleruby.language.control.ElidableResultNode;
 import org.truffleruby.language.control.FrameOnStackNode;
 import org.truffleruby.language.control.IfElseNode;
 import org.truffleruby.language.control.IfNode;
-import org.truffleruby.language.control.LexicalReturnNode;
+import org.truffleruby.language.control.LocalReturnNode;
 import org.truffleruby.language.control.NextNode;
 import org.truffleruby.language.control.ReturnID;
 import org.truffleruby.language.control.DynamicReturnNode;
@@ -3082,7 +3082,7 @@ public class BodyTranslator extends Translator {
         if (environment.isBlock()) {
             ret = new DynamicReturnNode(environment.getReturnID(), translatedChild);
         } else {
-            ret = new LexicalReturnNode(translatedChild);
+            ret = new LocalReturnNode(translatedChild);
         }
 
         ret.unsafeSetSourceSection(sourceSection);

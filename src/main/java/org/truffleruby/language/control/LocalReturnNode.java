@@ -9,20 +9,20 @@
  */
 package org.truffleruby.language.control;
 
-import com.oracle.truffle.api.nodes.ControlFlowException;
+import com.oracle.truffle.api.frame.VirtualFrame;
+import org.truffleruby.language.RubyNode;
 
-public final class LexicalReturnException extends ControlFlowException {
+public class LocalReturnNode extends RubyNode {
 
-    private static final long serialVersionUID = -98757896543565476L;
+    @Child private RubyNode value;
 
-    private final Object value;
-
-    public LexicalReturnException(Object value) {
+    public LocalReturnNode(RubyNode value) {
         this.value = value;
     }
 
-    public Object getValue() {
-        return value;
+    @Override
+    public Object execute(VirtualFrame frame) {
+        throw new LocalReturnException(value.execute(frame));
     }
 
 }
