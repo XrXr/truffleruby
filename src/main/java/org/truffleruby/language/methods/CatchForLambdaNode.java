@@ -96,6 +96,7 @@ org.truffleruby.language.control.ReturnException
          */
         ReturnID localSpecificReturn = theonetheone;
         Object ret = null;
+        int out = 0;
 //        if (localSpecificReturn == returnID) { // *********** if you uncomment this block, the bug goes away!
 //            System.err.format("executing %s\n", returnID);
 //        }
@@ -103,12 +104,11 @@ org.truffleruby.language.control.ReturnException
         try {
             while (true) {
                 try {
+                    out = 1;
                     ret = body.execute(frame);
                     return ret;  // if it goes out here, ret in the finally block should not be null, but it is
                 } catch (ReturnException e) {
-                    if (localSpecificReturn == returnID) { // should cover both exits in this catch
-                        System.err.format("catch by %s\n", System.identityHashCode(this));
-                    }
+                    out = 2;
 
                     if (matchingReturnProfile.profile(e.getReturnID() == returnID)) {
                         return e.getValue();
@@ -119,27 +119,22 @@ org.truffleruby.language.control.ReturnException
                         throw e;
                     }
                 } catch (RetryException e) {
+                    out = 3;
                     retryProfile.enter();
-                    if (localSpecificReturn == returnID) {  // covers the throw below
-                        System.err.format("3catch by %s\n", System.identityHashCode(this));
-                    }
 
                     throw new RaiseException(getContext(), coreExceptions().syntaxErrorInvalidRetry(this));
                 } catch (RedoException e) {
+                    out = 4;
                     redoProfile.enter();
                     getContext().getSafepointManager().poll(this);
                     continue; // doesn't exit the method, no log
                 } catch (NextException e) {
-                    if (localSpecificReturn == returnID) {  // covers the return below
-                        System.err.format("4catch by %s\n", System.identityHashCode(this));
-                    }
+                    out = 6;
 
                     nextProfile.enter();
                     return e.getResult();
                 } catch (BreakException e) {
-                    if (localSpecificReturn == returnID) { // covers the return and throw below
-                        System.err.format("5catch by %s\n", System.identityHashCode(this));
-                    }
+                    out = 7;
 
                     if (matchingBreakProfile.profile(e.getBreakID() == breakID)) {
                         return e.getResult();
@@ -147,13 +142,13 @@ org.truffleruby.language.control.ReturnException
                         throw e;
                     }
                 } catch (Exception e) {
-                    System.err.format("6catch by %s\n", e);  // covers the throw below
+                    out = 8;
                     throw e;
                 }
             }
         } finally {
             if (localSpecificReturn == returnID) {
-                System.err.format("%s (== theonetheone) exited ret = %s\n", returnID, ret);
+                System.err.format("%s (== theonetheone) exited ret = %s out: %d \n", returnID, ret, out);
             }
         }
     }
