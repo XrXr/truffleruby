@@ -10,9 +10,9 @@
 package org.truffleruby.language.methods;
 
 import org.truffleruby.language.RubyNode;
-import org.truffleruby.language.control.LocalReturnException;
-import org.truffleruby.language.control.NonLocalReturnException;
-import org.truffleruby.language.control.NonLocalReturnID;
+import org.truffleruby.language.control.LexicalReturnException;
+import org.truffleruby.language.control.DynamicReturnException;
+import org.truffleruby.language.control.ReturnID;
 import org.truffleruby.language.control.RaiseException;
 import org.truffleruby.language.control.RetryException;
 
@@ -22,7 +22,7 @@ import com.oracle.truffle.api.profiles.ConditionProfile;
 
 public class CatchForMethodNode extends RubyNode {
 
-    private final NonLocalReturnID returnID;
+    private final ReturnID returnID;
 
     @Child private RubyNode body;
 
@@ -30,7 +30,7 @@ public class CatchForMethodNode extends RubyNode {
     private final ConditionProfile matchingReturnProfile = ConditionProfile.createBinaryProfile();
     private final BranchProfile retryProfile = BranchProfile.create();
 
-    public CatchForMethodNode(NonLocalReturnID returnID, RubyNode body) {
+    public CatchForMethodNode(ReturnID returnID, RubyNode body) {
         this.returnID = returnID;
         this.body = body;
     }
@@ -39,10 +39,10 @@ public class CatchForMethodNode extends RubyNode {
     public Object execute(VirtualFrame frame) {
         try {
             return body.execute(frame);
-        } catch (LocalReturnException e) {
+        } catch (LexicalReturnException e) {
             localReturnProfile.enter();
             return e.getValue();
-        } catch (NonLocalReturnException e) {
+        } catch (DynamicReturnException e) {
             if (matchingReturnProfile.profile(e.getReturnID() == returnID)) {
                 return e.getValue();
             } else {

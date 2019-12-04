@@ -9,24 +9,20 @@
  */
 package org.truffleruby.language.control;
 
+import com.oracle.truffle.api.frame.VirtualFrame;
 import org.truffleruby.language.RubyNode;
 
-import com.oracle.truffle.api.frame.VirtualFrame;
-
-public class NonLocalReturnNode extends RubyNode {
-
-    private final NonLocalReturnID returnID;
+public class LexicalReturnNode extends RubyNode {
 
     @Child private RubyNode value;
 
-    public NonLocalReturnNode(NonLocalReturnID returnID, RubyNode value) {
-        this.returnID = returnID;
+    public LexicalReturnNode(RubyNode value) {
         this.value = value;
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
-        throw new NonLocalReturnException(returnID, value.execute(frame));
+        throw new LexicalReturnException(value.execute(frame));
     }
 
 }

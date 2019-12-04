@@ -10,9 +10,9 @@
 package org.truffleruby.language.methods;
 
 import org.truffleruby.language.RubyNode;
-import org.truffleruby.language.control.LocalReturnException;
+import org.truffleruby.language.control.LexicalReturnException;
 import org.truffleruby.language.control.RaiseException;
-import org.truffleruby.language.control.NonLocalReturnException;
+import org.truffleruby.language.control.DynamicReturnException;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.profiles.BranchProfile;
@@ -31,7 +31,7 @@ public class CatchReturnAsErrorNode extends RubyNode {
     public Object execute(VirtualFrame frame) {
         try {
             return body.execute(frame);
-        } catch (LocalReturnException | NonLocalReturnException e) {        // XXXXXX which of these is correct?
+        } catch (LexicalReturnException | DynamicReturnException e) {        // XXXXXX which of these is correct?
             retryProfile.enter();
             throw new RaiseException(getContext(), coreExceptions().unexpectedReturn(this));
         }

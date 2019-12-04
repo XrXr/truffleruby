@@ -9,20 +9,6 @@
  */
 package org.truffleruby.language.control;
 
-import com.oracle.truffle.api.nodes.ControlFlowException;
-
-public final class LocalReturnException extends ControlFlowException {
-
-    private static final long serialVersionUID = -98757896543565476L;
-
-    private final Object value;
-
-    public LocalReturnException(Object value) {
-        this.value = value;
-    }
-
-    public Object getValue() {
-        return value;
-    }
+public class ReturnID {
 
 }

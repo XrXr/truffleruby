@@ -18,7 +18,7 @@ import org.truffleruby.language.LexicalScope;
 import org.truffleruby.language.RubyNode;
 import org.truffleruby.language.SourceIndexLength;
 import org.truffleruby.language.control.BreakID;
-import org.truffleruby.language.control.NonLocalReturnID;
+import org.truffleruby.language.control.ReturnID;
 import org.truffleruby.language.literal.NilLiteralNode;
 import org.truffleruby.language.locals.LocalVariableType;
 import org.truffleruby.language.locals.ReadDeclarationVariableNode;
@@ -39,7 +39,7 @@ public class TranslatorEnvironment {
 
     private final List<FrameSlot> flipFlopStates = new ArrayList<>();
 
-    private final NonLocalReturnID returnID;
+    private final ReturnID returnID;
     private final int blockDepth;
     private BreakID breakID;
 
@@ -59,7 +59,7 @@ public class TranslatorEnvironment {
     public TranslatorEnvironment(
             TranslatorEnvironment parent,
             ParseEnvironment parseEnvironment,
-            NonLocalReturnID returnID,
+            ReturnID returnID,
             boolean ownScopeForAssignments,
             boolean neverAssignInParentScope,
             boolean isModuleBody,
@@ -181,7 +181,7 @@ public class TranslatorEnvironment {
         return name;
     }
 
-    public NonLocalReturnID getReturnID() {
+    public ReturnID getReturnID() {
         return returnID;
     }
 

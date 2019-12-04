@@ -9,6 +9,20 @@
  */
 package org.truffleruby.language.control;
 
-public class NonLocalReturnID {
+import com.oracle.truffle.api.nodes.ControlFlowException;
+
+public final class LexicalReturnException extends ControlFlowException {
+
+    private static final long serialVersionUID = -98757896543565476L;
+
+    private final Object value;
+
+    public LexicalReturnException(Object value) {
+        this.value = value;
+    }
+
+    public Object getValue() {
+        return value;
+    }
 
 }

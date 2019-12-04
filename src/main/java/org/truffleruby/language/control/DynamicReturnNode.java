@@ -9,20 +9,24 @@
  */
 package org.truffleruby.language.control;
 
-import com.oracle.truffle.api.frame.VirtualFrame;
 import org.truffleruby.language.RubyNode;
 
-public class LocalReturnNode extends RubyNode {
+import com.oracle.truffle.api.frame.VirtualFrame;
+
+public class DynamicReturnNode extends RubyNode {
+
+    private final ReturnID returnID;
 
     @Child private RubyNode value;
 
-    public LocalReturnNode(RubyNode value) {
+    public DynamicReturnNode(ReturnID returnID, RubyNode value) {
+        this.returnID = returnID;
         this.value = value;
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
-        throw new LocalReturnException(value.execute(frame));
+        throw new DynamicReturnException(returnID, value.execute(frame));
     }
 
 }

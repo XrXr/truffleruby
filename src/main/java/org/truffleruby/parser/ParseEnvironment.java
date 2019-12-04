@@ -14,7 +14,7 @@ import java.io.File;
 import org.truffleruby.RubyContext;
 import org.truffleruby.language.LexicalScope;
 import org.truffleruby.language.control.BreakID;
-import org.truffleruby.language.control.NonLocalReturnID;
+import org.truffleruby.language.control.ReturnID;
 
 /**
  * Translator environment, unique per parse/translation.
@@ -62,8 +62,8 @@ public class ParseEnvironment {
         this.dynamicConstantLookup = dynamicConstantLookup;
     }
 
-    public NonLocalReturnID allocateReturnID() {
-        return new NonLocalReturnID();
+    public ReturnID allocateReturnID() {
+        return new ReturnID();
     }
 
     public BreakID allocateBreakID() {

@@ -80,10 +80,10 @@ import org.truffleruby.language.control.ElidableResultNode;
 import org.truffleruby.language.control.FrameOnStackNode;
 import org.truffleruby.language.control.IfElseNode;
 import org.truffleruby.language.control.IfNode;
-import org.truffleruby.language.control.LocalReturnNode;
+import org.truffleruby.language.control.LexicalReturnNode;
 import org.truffleruby.language.control.NextNode;
-import org.truffleruby.language.control.NonLocalReturnID;
-import org.truffleruby.language.control.NonLocalReturnNode;
+import org.truffleruby.language.control.ReturnID;
+import org.truffleruby.language.control.DynamicReturnNode;
 import org.truffleruby.language.control.NotNode;
 import org.truffleruby.language.control.OnceNode;
 import org.truffleruby.language.control.OrNode;
@@ -946,7 +946,7 @@ public class BodyTranslator extends Translator {
                     null,
                     false);
 
-            final NonLocalReturnID returnId;
+            final ReturnID returnId;
 
             if (sclass) {
                 returnId = environment.getReturnID();
@@ -1863,7 +1863,7 @@ public class BodyTranslator extends Translator {
                 false);
 
         final ParseEnvironment parseEnvironment = environment.getParseEnvironment();
-        final NonLocalReturnID returnID = isLambda ? parseEnvironment.allocateReturnID() : environment.getReturnID();
+        final ReturnID returnID = isLambda ? parseEnvironment.allocateReturnID() : environment.getReturnID();
 
         final TranslatorEnvironment newEnvironment = new TranslatorEnvironment(
                 environment,
@@ -3080,9 +3080,9 @@ public class BodyTranslator extends Translator {
         final RubyNode ret;
 
         if (environment.isBlock()) {
-            ret = new NonLocalReturnNode(environment.getReturnID(), translatedChild);
+            ret = new DynamicReturnNode(environment.getReturnID(), translatedChild);
         } else {
-            ret = new LocalReturnNode(translatedChild);
+            ret = new LexicalReturnNode(translatedChild);
         }
 
         ret.unsafeSetSourceSection(sourceSection);

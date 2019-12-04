@@ -12,10 +12,10 @@ package org.truffleruby.language.methods;
 import org.truffleruby.language.RubyNode;
 import org.truffleruby.language.control.BreakException;
 import org.truffleruby.language.control.BreakID;
-import org.truffleruby.language.control.LocalReturnException;
+import org.truffleruby.language.control.LexicalReturnException;
 import org.truffleruby.language.control.NextException;
-import org.truffleruby.language.control.NonLocalReturnException;
-import org.truffleruby.language.control.NonLocalReturnID;
+import org.truffleruby.language.control.DynamicReturnException;
+import org.truffleruby.language.control.ReturnID;
 import org.truffleruby.language.control.RaiseException;
 import org.truffleruby.language.control.RedoException;
 import org.truffleruby.language.control.RetryException;
@@ -26,7 +26,7 @@ import com.oracle.truffle.api.profiles.ConditionProfile;
 
 public class CatchForLambdaNode extends RubyNode {
 
-    private final NonLocalReturnID returnID;
+    private final ReturnID returnID;
     private final BreakID breakID;
 
     @Child private RubyNode body;
@@ -38,7 +38,7 @@ public class CatchForLambdaNode extends RubyNode {
     private final BranchProfile redoProfile = BranchProfile.create();
     private final BranchProfile nextProfile = BranchProfile.create();
 
-    public CatchForLambdaNode(NonLocalReturnID returnID, BreakID breakID, RubyNode body) {
+    public CatchForLambdaNode(ReturnID returnID, BreakID breakID, RubyNode body) {
         this.returnID = returnID;
         this.breakID = breakID;
         this.body = body;
@@ -49,10 +49,10 @@ public class CatchForLambdaNode extends RubyNode {
         while (true) {
             try {
                 return body.execute(frame);
-            } catch (LocalReturnException e) {
+            } catch (LexicalReturnException e) {
                 localReturnProfile.enter();
                 return e.getValue();
-            } catch (NonLocalReturnException e) {
+            } catch (DynamicReturnException e) {
                 if (matchingReturnProfile.profile(e.getReturnID() == returnID)) {
                     return e.getValue();
                 } else {
