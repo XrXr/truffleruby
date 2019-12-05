@@ -316,12 +316,18 @@ pipelines:
             scope: "platform-${SHOPIFY_BUILD_PIPELINE_SLUG}"
         run: .shopify-build/test-gem.sh storefront-renderer-install
       - wait
-      - label: Run storefront_renderer tests 1/3
+      - label: Run storefront_renderer test:unit
         <<: *storefront_renderer_test
-        run: .shopify-build/test-gem.sh storefront-renderer-test-1
-      - label: Run storefront_renderer tests 2/3
+        run:
+          - cd storefront-renderer
+          - bundle exec rake db:load test:unit
+      - label: Run storefront_renderer test:shared
         <<: *storefront_renderer_test
-        run: .shopify-build/test-gem.sh storefront-renderer-test-2
-      - label: Run storefront_renderer tests 3/3
+        run:
+          - cd storefront-renderer
+          - bundle exec rake db:load test:shared
+      - label: Run storefront_renderer test:liquid
         <<: *storefront_renderer_test
-        run: .shopify-build/test-gem.sh storefront-renderer-test-3
+        run:
+          - cd storefront-renderer
+          - bundle exec rake db:load test:liquid
