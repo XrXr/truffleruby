@@ -217,16 +217,6 @@ pipelines:
             scope: "platform-${SHOPIFY_BUILD_PIPELINE_SLUG}"
         run: .shopify-build/test-gem.sh storefront-renderer-install
       - wait
-      - <<: *storefront_renderer_test
-        label: Run storefront_renderer tests 1/3
-        run: .shopify-build/test-gem.sh storefront-renderer-test-1
-      - <<: *storefront_renderer_test
-        label: Run storefront_renderer tests 2/3
-        run: .shopify-build/test-gem.sh storefront-renderer-test-2
-      - <<: *storefront_renderer_test
-        label: Run storefront_renderer tests 3/3
-        run: .shopify-build/test-gem.sh storefront-renderer-test-3
-      - wait
       - block: Produce a tarball artifact
       - <<: *truffle_run
         label: Package
@@ -300,3 +290,51 @@ pipelines:
           - gem install bundler -v "$(grep -A 1 "BUNDLED WITH" Gemfile.lock | tail -n 1)"
           - bundle install --without test --without development
           - bundle exec ruby bin/upload_bins_for_dev
+
+  truffleruby-shopify-storefront-renderer:
+    default_container: debian
+    steps:
+      - label: Build TruffleRuby on Debian
+        high_concurrency: true
+        timeout: 90m
+        git:
+          history: shallow
+        cache:
+          - path: .shopify-build/build
+            inherited: false
+            scope: "platform-${SHOPIFY_BUILD_PIPELINE_SLUG}"
+        run: .shopify-build/build.sh
+      - wait
+      - label: Install storefront_renderer
+        timeout: 30m
+        services:
+          mysql: '5.7'
+          memcached: 'alpine'
+          redis:
+            image: redis:alpine
+            command: redis-server
+          toxiproxy:
+            image: shopify/toxiproxy
+        env:
+          TOXIPROXY_HOST: 'toxiproxy'
+          REDIS_SERVER: redis:6379
+        cache:
+          - path: .shopify-build/build
+            required: true
+            inherited: false
+            upload: false
+            scope: "platform-${SHOPIFY_BUILD_PIPELINE_SLUG}"
+          - path: storefront-renderer
+            inherited: false
+            scope: "platform-${SHOPIFY_BUILD_PIPELINE_SLUG}"
+        run: .shopify-build/test-gem.sh storefront-renderer-install
+      - wait
+      - <<: *storefront_renderer_test
+        label: Run storefront_renderer tests 1/3
+        run: .shopify-build/test-gem.sh storefront-renderer-test-1
+      - <<: *storefront_renderer_test
+        label: Run storefront_renderer tests 2/3
+        run: .shopify-build/test-gem.sh storefront-renderer-test-2
+      - <<: *storefront_renderer_test
+        label: Run storefront_renderer tests 3/3
+        run: .shopify-build/test-gem.sh storefront-renderer-test-3
