@@ -4,3 +4,4 @@ slow:The Shopify build includes Graal
 slow:The Shopify build can run native
 slow:The Shopify build can run JVM
 slow:The Shopify build includes libgraal
+slow:The Shopify build includes coverage
