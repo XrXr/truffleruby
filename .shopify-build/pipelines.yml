@@ -241,7 +241,7 @@ pipelines:
       - <<: *liquid_test
       - <<: *measured_test
       - <<: *minitest_test
-      - <<: *mysql2_test
+      # - <<: *mysql2_test not run as the MySQL service doesn't seem to work on macOS
       - <<: *money_test
       - <<: *nokogiri_test
       - <<: *nokogumbo_test
