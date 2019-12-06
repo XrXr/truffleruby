@@ -83,10 +83,20 @@ shared:
     <<: *truffle_run
     label: Run money tests
     run: .shopify-build/test-gem.sh money
+  mysql2_test: &mysql2_test
+    <<: *truffle_run
+    label: Run mysql2 basic tests
+    services:
+      mysql: '5.7'
+    run: .shopify-build/test-gem.sh mysql2
   nokogiri_test: &nokogiri_test
     <<: *truffle_run
     label: Install nokogiri
     run: .shopify-build/test-gem.sh nokogiri
+  oj_test: &oj_test
+    <<: *truffle_run
+    label: Install oj
+    run: .shopify-build/test-gem.sh oj
   nokogumbo_test: &nokogumbo_test
     <<: *truffle_run
     label: Install nokogumbo
@@ -95,6 +105,10 @@ shared:
     <<: *truffle_run
     label: Run google-protobuf tests
     run: .shopify-build/test-gem.sh protobuf
+  semian_test: &semian_test
+    <<: *truffle_run
+    label: Build semian
+    run: .shopify-build/test-gem.sh semian
   snappy_test: &snappy_test
     <<: *truffle_run
     label: Run snappy tests
@@ -111,6 +125,7 @@ shared:
     <<: *truffle_run
     label: Run zeitwerk tests
     run: .shopify-build/test-gem.sh zeitwerk
+
   storefront_renderer_test: &storefront_renderer_test
     timeout: 30m
     high_concurrency: true
@@ -174,67 +189,29 @@ pipelines:
       - <<: *liquid_test
       - <<: *measured_test
       - <<: *minitest_test
+      - <<: *mysql2_test
       - <<: *money_test
       - <<: *nokogiri_test
       - <<: *nokogumbo_test
-      - <<: *snappy_test
+      - <<: *oj_test
       - <<: *puma_test
+      - <<: *semian_test
+      - <<: *snappy_test
       - <<: *statsd_instrument_test
       - <<: *protobuf_test
       - <<: *zeitwerk_test
-      - <<: *truffle_run
-        label: Build semian
-        run: .shopify-build/test-gem.sh semian
-      - <<: *truffle_run
-        label: Run mysql2 basic tests
-        services:
-          mysql: '5.7'
-        run: .shopify-build/test-gem.sh mysql2
-      - timeout: 30m
-        services:
-          mysql: '5.7'
-          memcached: 'alpine'
-          redis:
-            image: redis:alpine
-            command: redis-server
-          toxiproxy:
-            image: shopify/toxiproxy
-        env:
-          TOXIPROXY_HOST: 'toxiproxy'
-          REDIS_SERVER: redis:6379
-        label: Install storefront_renderer
-        cache:
-          - path: .shopify-build/build
-            required: true
-            inherited: false
-            upload: false
-            scope: "platform-${SHOPIFY_BUILD_PIPELINE_SLUG}"
-          - path: storefront-renderer
-            inherited: false
-            scope: "platform-${SHOPIFY_BUILD_PIPELINE_SLUG}"
-        run: .shopify-build/test-gem.sh storefront-renderer-install
-      - wait
-      - <<: *storefront_renderer_test
-        label: Run storefront_renderer tests 1/3
-        run: .shopify-build/test-gem.sh storefront-renderer-test-1
-      - <<: *storefront_renderer_test
-        label: Run storefront_renderer tests 2/3
-        run: .shopify-build/test-gem.sh storefront-renderer-test-2
-      - <<: *storefront_renderer_test
-        label: Run storefront_renderer tests 3/3
-        run: .shopify-build/test-gem.sh storefront-renderer-test-3
       - wait
       - block: Produce a tarball artifact
-      - <<: *truffle_run
-        label: Package
+      - label: Package
+        <<: *truffle_run
         run: .shopify-build/package.sh
         artifact_paths:
           - .shopify-build/artifacts
       - block: Make and upload Debian package to Package Cloud
       - label: "make and publish debian package out of build/"
+        <<: *truffle_run
         container: packagecloud
         ejson: .shopify-build/package_cloud.ejson
-        <<: *truffle_run
         run:
           - gem install package_cloud
           - .shopify-build/make-debian-package.sh
@@ -264,17 +241,20 @@ pipelines:
       - <<: *liquid_test
       - <<: *measured_test
       - <<: *minitest_test
+      # - <<: *mysql2_test not run as the MySQL service doesn't seem to work on macOS
       - <<: *money_test
       - <<: *nokogiri_test
       - <<: *nokogumbo_test
-      - <<: *snappy_test
+      - <<: *oj_test
       - <<: *puma_test
+      - <<: *semian_test
+      - <<: *snappy_test
       - <<: *statsd_instrument_test
       - <<: *protobuf_test
       - <<: *zeitwerk_test
       - block: Produce a tarball artifact
-      - <<: *truffle_run
-        label: Package
+      - label: Package
+        <<: *truffle_run
         run: .shopify-build/package.sh
         artifact_paths:
           - .shopify-build/artifacts
@@ -297,3 +277,57 @@ pipelines:
           - gem install bundler -v "$(grep -A 1 "BUNDLED WITH" Gemfile.lock | tail -n 1)"
           - bundle install --without test --without development
           - bundle exec ruby bin/upload_bins_for_dev
+
+  truffleruby-shopify-storefront-renderer:
+    default_container: debian
+    steps:
+      - label: Build TruffleRuby on Debian
+        high_concurrency: true
+        timeout: 90m
+        git:
+          history: shallow
+        cache:
+          - path: .shopify-build/build
+            inherited: false
+            scope: "platform-${SHOPIFY_BUILD_PIPELINE_SLUG}"
+        run: .shopify-build/build.sh
+      - wait
+      - label: Install storefront_renderer
+        timeout: 30m
+        services:
+          mysql: '5.7'
+          memcached: 'alpine'
+          redis:
+            image: redis:alpine
+            command: redis-server
+          toxiproxy:
+            image: shopify/toxiproxy
+        env:
+          TOXIPROXY_HOST: 'toxiproxy'
+          REDIS_SERVER: redis:6379
+        cache:
+          - path: .shopify-build/build
+            required: true
+            inherited: false
+            upload: false
+            scope: "platform-${SHOPIFY_BUILD_PIPELINE_SLUG}"
+          - path: storefront-renderer
+            inherited: false
+            scope: "platform-${SHOPIFY_BUILD_PIPELINE_SLUG}"
+        run: .shopify-build/test-gem.sh storefront-renderer-install
+      - wait
+      - label: Run storefront_renderer test:unit
+        <<: *storefront_renderer_test
+        run:
+          - cd storefront-renderer
+          - bundle exec rake db:load test:unit
+      - label: Run storefront_renderer test:shared
+        <<: *storefront_renderer_test
+        run:
+          - cd storefront-renderer
+          - bundle exec rake db:load test:shared
+      - label: Run storefront_renderer test:liquid
+        <<: *storefront_renderer_test
+        run:
+          - cd storefront-renderer
+          - bundle exec rake db:load test:liquid
