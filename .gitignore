@@ -17,7 +17,7 @@ nbproject
 .settings
 .factorypath
 .metadata
-/workingsets.xml
+workingsets.xml
 
 # C extensions
 *.o

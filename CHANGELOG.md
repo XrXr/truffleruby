@@ -2,6 +2,7 @@
 
 New features:
 
+* Enable and document `--coverage` option (#1840, @chrisseaton).
 
 Bug fixes:
 
@@ -31,6 +32,10 @@ Bug fixes:
 * Fixed missing polyglot type declaration for `RSTRING_PTR` to help with native/managed interop.
 * Fixed `Module#to_s` and `Module#inspect` to not return an extra `#<Class:` for singleton classes.
 * Arrays backed by native storage now allocate the correct amount of memory (#1828).
+* Fixed issue in `ConditionVariable#wait` that could lose a `ConditionVariable#signal`.
+* Do not leak TruffleRuby specific method Array#swap (#1816)
+* Fixed `#inspect` on broken UTF-8 sequences (#1842, @chrisseaton).
+* `Truffle::Interop.keys` should report methods of String and Symbol (#1817)
 
 Compatibility:
 
@@ -41,6 +46,8 @@ Compatibility:
 * Implemented `keyword_init: true` for `Struct.new` (#1789, @XrXr).
 * Implemented `MatchData#dup` (#1792, @XrXr).
 * Implemented a native storage strategy for arrays to allow better C extension compatibility.
+* Implemented `rb_check_symbol_cstr` (#1814).
+* Implemented `rb_hash_start` (#1841, @XrXr).
 
 Performance:
 
