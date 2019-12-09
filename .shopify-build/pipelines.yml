@@ -318,16 +318,10 @@ pipelines:
       - wait
       - label: Run storefront_renderer test:unit
         <<: *storefront_renderer_test
-        run:
-          - cd storefront-renderer
-          - bundle exec rake db:load test:unit
+        run: .shopify-build/test-gem.sh storefront-renderer-test-unit
       - label: Run storefront_renderer test:shared
         <<: *storefront_renderer_test
-        run:
-          - cd storefront-renderer
-          - bundle exec rake db:load test:shared
+        run: .shopify-build/test-gem.sh storefront-renderer-test-shared
       - label: Run storefront_renderer test:liquid
         <<: *storefront_renderer_test
-        run:
-          - cd storefront-renderer
-          - bundle exec rake db:load test:liquid
+        run: .shopify-build/test-gem.sh storefront-renderer-test-liquid

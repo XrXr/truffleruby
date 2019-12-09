@@ -3298,7 +3298,8 @@ ID rb_check_id_cstr(const char *ptr, long len, rb_encoding *enc) {
 }
 
 VALUE rb_check_symbol_cstr(const char *ptr, long len, rb_encoding *enc) {
-  rb_tr_error("rb_check_symbol_cstr not implemented");
+  VALUE str = rb_enc_str_new(ptr, len, enc);
+  return RUBY_CEXT_INVOKE("rb_check_symbol_cstr", str);
 }
 
 int rb_econv_has_convpath_p(const char* from_encoding, const char* to_encoding) {
@@ -4367,8 +4368,7 @@ VALUE rb_str_cat_cstr(VALUE str, const char *ptr) {
 }
 
 st_index_t rb_hash_start(st_index_t h) {
-  st_index_t seed = (st_index_t) polyglot_as_i64(RUBY_CEXT_INVOKE_NO_WRAP("context_hash_seed"));
-  return seed + h;
+  return (st_index_t) polyglot_as_i64(polyglot_invoke(RUBY_CEXT, "rb_hash_start", h));
 }
 
 int rb_str_hash_cmp(VALUE str1, VALUE str2) {
