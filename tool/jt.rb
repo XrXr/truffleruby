@@ -1928,10 +1928,10 @@ EOS
     global_chruby_dir = Pathname.new('/opt/rubies').expand_path
 
     chruby_versions = if local_chruby_dir.directory?
-      local_chruby_dir
-    else
-      global_chruby_dir
-    end
+                        local_chruby_dir
+                      else
+                        global_chruby_dir
+                      end
 
     rubies_dir = chruby_versions if File.directory?(chruby_versions)
 
