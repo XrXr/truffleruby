@@ -67,6 +67,10 @@ shared:
     <<: *truffle_run
     label: Run i18n tests
     run: .shopify-build/test-gem.sh i18n
+  json_test: &json_test
+    <<: *truffle_run
+    label: Run json tests
+    run: .shopify-build/test-gem.sh json
   liquid_test: &liquid_test
     <<: *truffle_run
     label: Run liquid tests
@@ -186,6 +190,7 @@ pipelines:
       - <<: *browser_sniffer_test
       - <<: *cacheable_test
       - <<: *i18n_test
+      - <<: *json_test
       - <<: *liquid_test
       - <<: *measured_test
       - <<: *minitest_test
@@ -238,6 +243,7 @@ pipelines:
       - <<: *browser_sniffer_test
       - <<: *cacheable_test
       - <<: *i18n_test
+      - <<: *json_test
       - <<: *liquid_test
       - <<: *measured_test
       - <<: *minitest_test
