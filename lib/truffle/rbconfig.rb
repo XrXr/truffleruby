@@ -100,6 +100,8 @@ module RbConfig
     'SOEXT'             => Truffle::Platform::SOEXT.dup,
     'target_cpu'        => host_cpu,
     'target_os'         => host_os,
+    'UNICODE_VERSION'   => '12.0.0',
+    'UNICODE_EMOJI_VERSION' => '12.0',
   }
 
   MAKEFILE_CONFIG = CONFIG.dup
@@ -187,10 +189,17 @@ module RbConfig
 
     expanded['CPP'] = "#{cc} -E"
     mkconfig['CPP'] = '$(CC) -E'
-    expanded['LDSHARED'] = "#{cc} -shared"
-    mkconfig['LDSHARED'] = '$(CC) -shared'
-    expanded['LDSHAREDXX'] = "#{cxx} -shared"
-    mkconfig['LDSHAREDXX'] = '$(CXX) -shared'
+    if Truffle::Platform.darwin?
+      expanded['LDSHARED'] = "#{cc} -dynamic -bundle"
+      mkconfig['LDSHARED'] = '$(CC) -dynamic -bundle'
+      expanded['LDSHAREDXX'] = "#{cxx} -dynamic -bundle"
+      mkconfig['LDSHAREDXX'] = '$(CXX) -dynamic -bundle'
+    else
+      expanded['LDSHARED'] = "#{cc} -shared"
+      mkconfig['LDSHARED'] = '$(CC) -shared'
+      expanded['LDSHAREDXX'] = "#{cxx} -shared"
+      mkconfig['LDSHAREDXX'] = '$(CXX) -shared'
+    end
   end
 
   launcher = Truffle::Boot.get_option 'launcher'

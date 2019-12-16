@@ -9,7 +9,7 @@ suite = {
                 "name": "tools",
                 "subdir": True,
                 # version must always be equal to the version of the "sulong" import below
-                "version": "c16aa15fff9c666009a4ccc8d635cb0164eb0156",
+                "version": "06374458c09b51a5ddcb1e6822ea48f2a05b0501",
                 "urls": [
                     {"url": "git@github.com:Shopify/graal-shopify.git", "kind": "git"},
                     {"url": "https://curio.ssw.jku.at/nexus/content/repositories/snapshots", "kind": "binary"},
@@ -19,7 +19,7 @@ suite = {
                 "name": "sulong",
                 "subdir": True,
                 # version must always be equal to the version of the "tools" import above
-                "version": "c16aa15fff9c666009a4ccc8d635cb0164eb0156",
+                "version": "06374458c09b51a5ddcb1e6822ea48f2a05b0501",
                 "urls": [
                     {"url": "git@github.com:Shopify/graal-shopify.git", "kind": "git"},
                     {"url": "https://curio.ssw.jku.at/nexus/content/repositories/snapshots", "kind": "binary"},
@@ -63,26 +63,22 @@ suite = {
             "maven": {
                 "groupId": "org.jruby.joni",
                 "artifactId": "joni",
-                "version": "2.1.25"
+                "version": "2.1.30"
             },
-            "sha1": "5dbb09787a9b8780737b71fbf942235ef59051b9",
-            "sourceSha1": "505a09064f6e2209616f38724f6d97d8d889aa92",
-            "license": [
-                "MIT",              # Joni
-            ],
+            "sha1": "a23a567521996c2a412688763892cddbca7c3bd6",
+            "sourceSha1": "a1444342fc0c275613d43ca3d0a71ce919d85b18",
+            "license": ["MIT"],
         },
 
         "JCODINGS": {
             "maven": {
                 "groupId": "org.jruby.jcodings",
                 "artifactId": "jcodings",
-                "version": "1.0.40"
+                "version": "1.0.45"
             },
-            "sha1": "2838952e91baa37ac73ed817451268a193ba440a",
-            "sourceSha1": "0ed89e096c83d540acac00d6ee3ea935b4c905ff",
-            "license": [
-                "MIT",              # JCodings
-            ],
+            "sha1": "029404c013b3d51a8c60fac80409bb3d64dfb816",
+            "sourceSha1": "702693ea01e006385f2834ad56dad54b7a4ca248",
+            "license": ["MIT"],
         },
     },
 
@@ -274,13 +270,13 @@ suite = {
                 "src/main/c/spawn-helper/spawn-helper",
                 "src/main/c/truffleposix/<lib:truffleposix>",
                 "src/main/c/cext/<lib:truffleruby>",
-                "src/main/c/etc/<libsuffix:etc>",
-                "src/main/c/nkf/<libsuffix:nkf>",
-                "src/main/c/openssl/<libsuffix:openssl>",
-                "src/main/c/psych/<libsuffix:psych>",
-                "src/main/c/rbconfig-sizeof/<libsuffix:sizeof>",
-                "src/main/c/syslog/<libsuffix:syslog>",
-                "src/main/c/zlib/<libsuffix:zlib>",
+                "src/main/c/etc/<extsuffix:etc>",
+                "src/main/c/nkf/<extsuffix:nkf>",
+                "src/main/c/openssl/<extsuffix:openssl>",
+                "src/main/c/psych/<extsuffix:psych>",
+                "src/main/c/rbconfig-sizeof/<extsuffix:sizeof>",
+                "src/main/c/syslog/<extsuffix:syslog>",
+                "src/main/c/zlib/<extsuffix:zlib>",
             ],
             "license": [
                 "EPL-2.0",          # JRuby (we're choosing EPL out of EPL,GPL,LGPL)
@@ -429,15 +425,15 @@ suite = {
                     "file:lib/cext/include/*.h",
                 ],
                 "lib/mri/": [
-                    "dependency:org.truffleruby.cext/src/main/c/etc/<libsuffix:etc>",
-                    "dependency:org.truffleruby.cext/src/main/c/nkf/<libsuffix:nkf>",
-                    "dependency:org.truffleruby.cext/src/main/c/openssl/<libsuffix:openssl>",
-                    "dependency:org.truffleruby.cext/src/main/c/psych/<libsuffix:psych>",
-                    "dependency:org.truffleruby.cext/src/main/c/syslog/<libsuffix:syslog>",
-                    "dependency:org.truffleruby.cext/src/main/c/zlib/<libsuffix:zlib>",
+                    "dependency:org.truffleruby.cext/src/main/c/etc/<extsuffix:etc>",
+                    "dependency:org.truffleruby.cext/src/main/c/nkf/<extsuffix:nkf>",
+                    "dependency:org.truffleruby.cext/src/main/c/openssl/<extsuffix:openssl>",
+                    "dependency:org.truffleruby.cext/src/main/c/psych/<extsuffix:psych>",
+                    "dependency:org.truffleruby.cext/src/main/c/syslog/<extsuffix:syslog>",
+                    "dependency:org.truffleruby.cext/src/main/c/zlib/<extsuffix:zlib>",
                 ],
                 "lib/mri/rbconfig/": [
-                    "dependency:org.truffleruby.cext/src/main/c/rbconfig-sizeof/<libsuffix:sizeof>",
+                    "dependency:org.truffleruby.cext/src/main/c/rbconfig-sizeof/<extsuffix:sizeof>",
                 ],
                 "lib/truffle/": [
                     "dependency:org.truffleruby.cext/src/main/c/spawn-helper/spawn-helper",
