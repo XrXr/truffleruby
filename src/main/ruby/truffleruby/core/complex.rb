@@ -36,14 +36,15 @@
 
 class Complex < Numeric
 
-  undef_method :%, :<, :<=, :<=>, :>, :>=, :between?, :div, :divmod, :floor, :ceil, :modulo,
-               :remainder, :round, :step, :truncate, :i, :negative?, :positive?
+  undef_method :%, :<, :<=, :<=>, :>, :>=, :between?, :clamp, # comparable
+               :div, :divmod, :floor, :ceil, :modulo, :remainder,
+               :round, :step, :truncate, :i, :negative?, :positive?
 
   def self.convert(real, imag = undefined)
     if nil.equal?(real) || nil.equal?(imag)
       raise TypeError, 'cannot convert nil into Complex'
     end
-    imag = nil if undefined.equal?(imag)
+    imag = nil if TrufflePrimitive.undefined?(imag)
 
     if check_real?(real) && check_real?(imag)
       return new(real, imag)

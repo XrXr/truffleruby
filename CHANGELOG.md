@@ -36,6 +36,9 @@ Bug fixes:
 * Do not leak TruffleRuby specific method Array#swap (#1816)
 * Fixed `#inspect` on broken UTF-8 sequences (#1842, @chrisseaton).
 * `Truffle::Interop.keys` should report methods of String and Symbol (#1817)
+* `Kernel#sprintf` encoding validity has been fixed (#1852, @XrXr).
+* Fixed File.fnmatch causes ArrayIndexOutOfBoundsException (#1845).
+* Make `String#concat` work with no or multiple arguments (#1519).
 
 Compatibility:
 
@@ -48,6 +51,11 @@ Compatibility:
 * Implemented a native storage strategy for arrays to allow better C extension compatibility.
 * Implemented `rb_check_symbol_cstr` (#1814).
 * Implemented `rb_hash_start` (#1841, @XrXr).
+* JCodings has been updated from 1.0.42 to 1.0.45.
+* Joni has been updated from 2.1.25 to 2.1.30.
+* Implemented `Method#<<` and `Method#>>` (#1821).
+* The `.bundle` file extension is now used for C extensions on macOS (#1819, #1837).
+* Implemented `Comparable#clamp` (#1517).
 
 Performance:
 

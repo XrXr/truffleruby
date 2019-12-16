@@ -30,7 +30,7 @@ TRUFFLERUBY_DIR = File.expand_path('../..', File.realpath(__FILE__))
 GRAAL_DIR = File.expand_path('../graal-shopify', TRUFFLERUBY_DIR)
 PROFILES_DIR = "#{TRUFFLERUBY_DIR}/profiles"
 
-TRUFFLERUBY_GEM_TEST_PACK_VERSION = '9c09023af9c8d601b2850b3649c725eb9c0a5061'
+TRUFFLERUBY_GEM_TEST_PACK_VERSION = 'fa8e5817c1496e136caa1f994864712b2faf6bc7'
 
 JDEBUG = '--vm.agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=y'
 METRICS_REPS = Integer(ENV['TRUFFLERUBY_METRICS_REPS'] || 10)
@@ -49,8 +49,9 @@ RUBOCOP_INCLUDE_LIST = %w[
 ON_MAC = RbConfig::CONFIG['host_os'].include?('darwin')
 ON_LINUX = RbConfig::CONFIG['host_os'].include?('linux')
 
+# See core/truffle/platform.rb
 SOEXT = ON_MAC ? 'dylib' : 'so'
-DLEXT = SOEXT # See core/truffle/platform.rb
+DLEXT = ON_MAC ? 'bundle' : 'so'
 
 # Expand GEM_HOME relative to cwd so it cannot be misinterpreted later.
 ENV['GEM_HOME'] = File.expand_path(ENV['GEM_HOME']) if ENV['GEM_HOME']
