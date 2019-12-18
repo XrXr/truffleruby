@@ -300,6 +300,7 @@ pipelines:
       - wait
       - label: Install storefront_renderer
         timeout: 30m
+        high_concurrency: true
         services:
           mysql: '5.7'
           memcached: 'alpine'
