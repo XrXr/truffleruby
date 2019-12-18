@@ -1925,7 +1925,15 @@ EOS
     rbenv_root = ENV['RBENV_ROOT']
     rubies_dir = File.join(rbenv_root, 'versions') if rbenv_root && File.directory?(rbenv_root)
 
-    chruby_versions = File.expand_path('~/.rubies')
+    local_chruby_dir = Pathname.new('~/.rubies').expand_path
+    global_chruby_dir = Pathname.new('/opt/rubies').expand_path
+
+    chruby_versions = if local_chruby_dir.directory?
+                        local_chruby_dir
+                      else
+                        global_chruby_dir
+                      end
+
     rubies_dir = chruby_versions if File.directory?(chruby_versions)
 
     if rubies_dir
