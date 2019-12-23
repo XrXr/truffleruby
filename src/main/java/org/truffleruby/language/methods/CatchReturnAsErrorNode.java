@@ -31,7 +31,7 @@ public class CatchReturnAsErrorNode extends RubyNode {
     public Object execute(VirtualFrame frame) {
         try {
             return body.execute(frame);
-        } catch (LocalReturnException | DynamicReturnException e) {        // XXXXXX which of these is correct?
+        } catch (LocalReturnException | DynamicReturnException e) {
             retryProfile.enter();
             throw new RaiseException(getContext(), coreExceptions().unexpectedReturn(this));
         }
