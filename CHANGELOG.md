@@ -3,6 +3,7 @@
 New features:
 
 * Enable and document `--coverage` option (#1840, @chrisseaton).
+* Update the internal LLVM toolchain to LLVM 9 and reduce its download size.
 
 Bug fixes:
 
@@ -39,6 +40,17 @@ Bug fixes:
 * `Kernel#sprintf` encoding validity has been fixed (#1852, @XrXr).
 * Fixed File.fnmatch causes ArrayIndexOutOfBoundsException (#1845).
 * Make `String#concat` work with no or multiple arguments (#1519).
+* Make `Array#concat` work with no or multiple arguments (#1519).
+* Fixed BigDecimal coerce initial argument using `to_str` (#1826).
+* Fixed `NameError`, `NoMethodError`, and `SystemCallError` dup with internal field data.
+* Make `Enumerable#chunk` work without a block (#1518).
+* Fixed issue with `SystemCallError.new` setting a backtrace.
+* Fixed `BigDecimal#to_s` formatting issue (#1711).
+* Run `END` keyword block only once at exit.
+* Implement Numeric#clone method to return self.
+* Fixed `Symbol#to_proc` to create proc with nil `source_location` (#1663).
+* Make `GC.start` work with keyword arguments.
+* Fixed `Kernel#clone` for `nil`, `true`, `false`, `Integer`, and `Symbol`.
 
 Compatibility:
 
@@ -56,6 +68,8 @@ Compatibility:
 * Implemented `Method#<<` and `Method#>>` (#1821).
 * The `.bundle` file extension is now used for C extensions on macOS (#1819, #1837).
 * Implemented `Comparable#clamp` (#1517).
+* Implemented `rb_gc_register_mark_object` and `rb_enc_str_asciionly_p` (#1856, @chrisseaton).
+* Implemented `rb_io_set_nonblock` (#1741).
 
 Performance:
 

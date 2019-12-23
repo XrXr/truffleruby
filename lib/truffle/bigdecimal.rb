@@ -242,12 +242,12 @@ class BigDecimal < Numeric
 
         format '%s%s.%s',
                prefix,
-               add_spaces_to_s(before_dot, true, space_frequency),
-               add_spaces_to_s(after_dot, false, space_frequency)
+               add_spaces_to_s(before_dot, space_frequency),
+               add_spaces_to_s(after_dot, space_frequency)
       else
         format '%s0.%se%d',
                prefix,
-               add_spaces_to_s(unscaled_value, false, space_frequency),
+               add_spaces_to_s(unscaled_value, space_frequency),
                exponent_value
       end
     else
@@ -270,19 +270,14 @@ class BigDecimal < Numeric
     BigDecimal(data.split(':').last)
   end
 
-  private def add_spaces_to_s(string, reverse, space_frequency)
+  private def add_spaces_to_s(string, space_frequency)
     return string if space_frequency == 0
 
     remainder = string.size % space_frequency
-    shift     = reverse ? remainder : 0
-    pieces    = (string.size / space_frequency).times.map { |i| string[space_frequency*i + shift, space_frequency] }
+    pieces    = (string.size / space_frequency).times.map { |i| string[space_frequency*i, space_frequency] }
 
     if remainder > 0
-      if reverse
-        pieces.unshift string[0...remainder]
-      else
-        pieces.push string[-remainder..-1]
-      end
+      pieces.push string[-remainder..-1]
     end
 
     pieces.join ' '
@@ -326,8 +321,50 @@ class BigDecimal < Numeric
 end
 
 module Kernel
-  def BigDecimal(value, precision = Truffle::UNDEFINED)
-    TrufflePrimitive.bigdecimal_new value, precision, true
+  def BigDecimal(value, precision = Truffle::UNDEFINED, exception: true)
+    if !TrufflePrimitive.undefined?(precision)
+      precision = Truffle::Type.rb_num2int(precision)
+      if precision < 0
+        if exception
+          raise ArgumentError, 'negative precision'
+        else
+          return nil
+        end
+      end
+    end
+
+    case value
+    when nil
+      if exception
+        raise TypeError, "can't convert nil into BigDecimal"
+      else
+        return nil
+      end
+    when true
+      if exception
+        raise TypeError, "can't convert true into BigDecimal"
+      else
+        return nil
+      end
+    when false
+      if exception
+        raise TypeError, "can't convert false into BigDecimal"
+      else
+        return nil
+      end
+    when BigDecimal, Integer, Float, Rational, String
+        # conversion handled in primitive
+    else
+      if exception
+        value = StringValue(value)
+      else
+        value = Truffle::Type.rb_check_convert_type(count, String, :to_str)
+        if value.nil?
+          return nil
+        end
+      end
+    end
+    TrufflePrimitive.bigdecimal_new value, precision, exception
   end
 end
 

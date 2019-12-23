@@ -51,10 +51,6 @@ module ImmediateValue
     []
   end
   private :protected_singleton_methods
-
-  def clone
-    self
-  end
 end
 
 class NilClass
