@@ -9,7 +9,7 @@
 require_relative '../ruby/spec_helper'
 
 describe "Module#undef_method" do
-  describe "reports an error message as expected by minitest tests" do
+  it "reports an error message as expected by minitest tests" do
     class Object
 
       def truffleruby_minitest_spec_stub
