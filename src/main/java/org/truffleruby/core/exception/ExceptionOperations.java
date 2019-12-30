@@ -34,7 +34,7 @@ public abstract class ExceptionOperations {
     @TruffleBoundary
     private static String messageFieldToString(RubyContext context, DynamicObject exception) {
         Object message = Layouts.EXCEPTION.getMessage(exception);
-        if (message == null || message == context.getCoreLibrary().getNil()) {
+        if (message == null || message == context.getCoreLibrary().nil) {
             final ModuleFields exceptionClass = Layouts.MODULE
                     .getFields(Layouts.BASIC_OBJECT.getLogicalClass(exception));
             return exceptionClass.getName(); // What Exception#message would return if no message is set
@@ -77,7 +77,7 @@ public abstract class ExceptionOperations {
         context.getCoreExceptions().showExceptionIfDebug(rubyClass, message, backtrace);
         return Layouts.CLASS
                 .getInstanceFactory(rubyClass)
-                .newInstance(Layouts.EXCEPTION.build(message, null, backtrace, cause));
+                .newInstance(Layouts.EXCEPTION.build(message, null, backtrace, cause, null, null));
     }
 
     // because the factory is not constant
@@ -88,12 +88,12 @@ public abstract class ExceptionOperations {
         final DynamicObject cause = ThreadGetExceptionNode.getLastException(context);
         context.getCoreExceptions().showExceptionIfDebug(rubyClass, message, backtrace);
         return Layouts.CLASS.getInstanceFactory(rubyClass).newInstance(
-                Layouts.SYSTEM_CALL_ERROR.build(message, null, backtrace, cause, errno));
+                Layouts.SYSTEM_CALL_ERROR.build(message, null, backtrace, cause, null, null, errno));
     }
 
     public static DynamicObject getFormatter(String name, RubyContext context) {
         return (DynamicObject) Layouts.MODULE
-                .getFields(context.getCoreLibrary().getTruffleExceptionOperationsModule())
+                .getFields(context.getCoreLibrary().truffleExceptionOperationsModule)
                 .getConstant(name)
                 .getValue();
     }

@@ -731,9 +731,9 @@ module Commands
         add_experimental_options.call
         vm_args += %w[--backtraces-hide-core-files=false]
       when '--stress'
-        vm_args << '--vm.Dgraal.TruffleCompileImmediately=true'
-        vm_args << '--vm.Dgraal.TruffleBackgroundCompilation=false'
-        vm_args << '--vm.Dgraal.TruffleCompilationExceptionsAreFatal=true'
+        vm_args << '--engine.CompileImmediately'
+        vm_args << '--engine.BackgroundCompilation=false'
+        vm_args << '--engine.CompilationExceptionsAreFatal'
       when '--asm'
         vm_args += %w[--vm.XX:+UnlockDiagnosticVMOptions --vm.XX:CompileCommand=print,*::callRoot]
       when '--jdebug'
@@ -745,10 +745,10 @@ module Commands
         vm_args << '--vm.XX:+UnlockDiagnosticVMOptions' << '--vm.XX:+DebugNonSafepoints'
         vm_args << '--vm.Dgraal.TruffleEnableInfopoints=true'
       when '--fg'
-        vm_args << '--vm.Dgraal.TruffleBackgroundCompilation=false'
+        vm_args << '--engine.BackgroundCompilation=false'
       when '--trace'
         truffleruby_compiler!
-        vm_args << '--vm.Dgraal.TraceTruffleCompilation=true'
+        vm_args << '--engine.TraceCompilation'
       when '--igv', '--igv-full'
         truffleruby_compiler!
         vm_args << (arg == '--igv-full' ? '--vm.Dgraal.Dump=Truffle:2' : '--vm.Dgraal.Dump=Truffle:1')
@@ -1747,7 +1747,7 @@ EOS
 
     vm_args = []
     if truffleruby?
-      vm_args << '--vm.Dgraal.TruffleCompilationExceptionsAreFatal=true'
+      vm_args << '--engine.CompilationExceptionsAreFatal=true'
     end
     run_ruby(*vm_args, "#{TRUFFLERUBY_DIR}/bench/benchmark", *args, use_exec: true)
   end
@@ -1876,7 +1876,7 @@ EOS
     raise 'use --env native instead' if options.delete('--native')
 
     if os_version_changed?
-      puts "Kernel version changed since last build: #{build_kernel_ver} -> #{host_kernel_ver}"
+      warn "Kernel version changed since last build: #{build_kernel_ver.inspect} -> #{host_kernel_ver.inspect}"
       remove_shared_compile_artifacts
     end
 
@@ -1961,8 +1961,8 @@ EOS
 
   def remove_shared_compile_artifacts
     if build_information_path.file?
+      warn "Deleting shared build artifacts to trigger rebuild: #{shared_path}"
       shared_path.rmtree
-      puts "Deleted shared build artifacts to trigger rebuild: #{shared_path}"
     end
   end
 
@@ -1971,22 +1971,21 @@ EOS
   end
 
   def host_kernel_ver
-    `uname -r`.chomp
+    `uname -r`[/^\d+/]
   end
 
   def build_kernel_ver
     return '' unless build_information_path.file?
 
     build_information = build_information_path.readlines
-    build_os_ver_loc  = build_information
-      .index { |l| /kernelVersion/.match(l) }
-      .succ
+    build_os_ver_loc  = build_information.index { |l| l.include?('getKernelMajorVersion') }
+    return '' unless build_os_ver_loc
 
-    build_information[build_os_ver_loc][/(\d+\.*)+/].chomp
+    build_information[build_os_ver_loc + 1][/"(\d+)/, 1]
   end
 
   def shared_path
-    Pathname.new('../mxbuild/org.truffleruby.shared').expand_path(__dir__)
+    Pathname.new("#{TRUFFLERUBY_DIR}/mxbuild/org.truffleruby.shared")
   end
 
   def build_information_path
