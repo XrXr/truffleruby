@@ -301,47 +301,33 @@ public abstract class KernelNodes {
         }
     }
 
-    @CoreMethod(names = "caller_locations", isModuleFunction = true, optional = 2, lowerFixnum = { 1, 2 })
+    @Primitive(name = "kernel_caller_locations", lowerFixnum = { 0, 1 })
     public abstract static class CallerLocationsNode extends CoreMethodArrayArgumentsNode {
-
-        @Specialization
-        protected DynamicObject callerLocations(NotProvided omit, NotProvided length) {
-            return innerCallerLocations(1, GetBacktraceException.UNLIMITED);
-        }
 
         @Specialization
         protected DynamicObject callerLocations(int omit, NotProvided length) {
             return innerCallerLocations(omit, GetBacktraceException.UNLIMITED);
         }
 
-        @Specialization(guards = "length >= 0")
+        @Specialization
         protected DynamicObject callerLocations(int omit, int length) {
             return innerCallerLocations(omit, length);
         }
 
         private DynamicObject innerCallerLocations(int omit, int length) {
-            final int omitted = 1 /* always skip #caller_locations */ + omit;
+            // Always skip #caller_locations.
+            final int omitted = omit + 1;
             final Backtrace backtrace = getContext().getCallStack().getBacktrace(this, omitted);
-            final int limit = (length == GetBacktraceException.UNLIMITED)
+
+            // We can't set an effective limit when dealing with negative range endings.
+            final int limit = length < 0
                     ? GetBacktraceException.UNLIMITED
                     : omitted + length;
 
-            int locationsCount = backtrace.getActivations(new GetBacktraceException(this, limit)).length;
+            // Fill in the stack trace.
+            backtrace.getActivations(new GetBacktraceException(this, limit));
 
-            if (length != GetBacktraceException.UNLIMITED && length < locationsCount) {
-                locationsCount = length;
-            }
-
-            final Object[] locations = new Object[locationsCount];
-
-            for (int n = 0; n < locationsCount; n++) {
-                locations[n] = Layouts.THREAD_BACKTRACE_LOCATION.createThreadBacktraceLocation(
-                        coreLibrary().getThreadBacktraceLocationFactory(),
-                        backtrace,
-                        n);
-            }
-
-            return createArray(locations, locations.length);
+            return backtrace.getBacktraceLocations(length);
         }
     }
 
@@ -1208,7 +1194,7 @@ public abstract class KernelNodes {
                 }
             }
 
-            return Layouts.METHOD.createMethod(coreLibrary().getMethodFactory(), self, method);
+            return Layouts.METHOD.createMethod(coreLibrary().methodFactory, self, method);
         }
 
         @TruffleBoundary
@@ -1355,7 +1341,7 @@ public abstract class KernelNodes {
 
         @Specialization
         protected DynamicObject proc(VirtualFrame frame, Object maybeBlock) {
-            return procNewNode.executeProcNew(frame, coreLibrary().getProcClass(), ArrayUtils.EMPTY_ARRAY, maybeBlock);
+            return procNewNode.executeProcNew(frame, coreLibrary().procClass, ArrayUtils.EMPTY_ARRAY, maybeBlock);
         }
 
     }
@@ -1682,7 +1668,7 @@ public abstract class KernelNodes {
             if (singletonProfile.profile(Layouts.CLASS.getIsSingleton(metaClass))) {
                 final InternalMethod method = Layouts.MODULE.getFields(metaClass).getMethod(name);
                 if (methodProfile.profile(method != null && !method.isUndefined())) {
-                    return Layouts.METHOD.createMethod(coreLibrary().getMethodFactory(), self, method);
+                    return Layouts.METHOD.createMethod(coreLibrary().methodFactory, self, method);
                 }
             }
 
@@ -1901,7 +1887,7 @@ public abstract class KernelNodes {
         @TruffleBoundary
         @Specialization
         protected DynamicObject globalVariables() {
-            final String[] keys = coreLibrary().getGlobalVariables().keys();
+            final String[] keys = coreLibrary().globalVariables.keys();
             final Object[] store = new Object[keys.length];
             for (int i = 0; i < keys.length; i++) {
                 store[i] = getSymbol(keys[i]);

@@ -23,7 +23,7 @@ public interface BuildInformation {
     String getRevision();
 
     String getCompileDate();
-
-    String kernelVersion();
+    
+    String getKernelMajorVersion();
 
 }
