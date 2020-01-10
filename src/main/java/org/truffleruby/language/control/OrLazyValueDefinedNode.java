@@ -36,7 +36,11 @@ public class OrLazyValueDefinedNode extends RubyNode {
         NEVER, ONCE, MANY;
 
         public RightUsage next() {
-            return values()[Math.min(this.ordinal() + 1, 2)];
+            if (this == NEVER) {
+                return ONCE;
+            } else {
+                return MANY;
+            }
         }
 
     }
