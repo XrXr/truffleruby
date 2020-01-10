@@ -45,14 +45,12 @@ public class OrLazyValueDefinedNode extends RubyNode {
     @Override
     public Object execute(VirtualFrame frame) {
         final Object leftValue = left.execute(frame);
-        final boolean leftValueBool = castToBoolean(leftValue);
 
-        if (!leftValueBool) {
-            rightUsage = rightUsage.next();
-        }
-        if (conditionProfile.profile(leftValueBool)) {
+        if (conditionProfile.profile(castToBoolean(leftValue))) {
             return leftValue;
         } else {
+            rightUsage = rightUsage.next();
+
             if (rightUsage != RightUsage.MANY) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
             }
