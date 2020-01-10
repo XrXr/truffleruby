@@ -52,6 +52,10 @@ shared:
     <<: *truffle_run
     label: Run Truffle specs
     run: .shopify-build/test-specs.sh :truffle :truffle_capi
+  compiler_tests: &compiler_tests
+    <<: *truffle_run
+    label: Run compiler tests
+    run: .shopify-build/test-compiler.sh
   addressable_test: &addressable_test
     <<: *truffle_run
     label: Run addressable tests
@@ -191,6 +195,7 @@ pipelines:
       - <<: *library_specs
       - <<: *capi_specs
       - <<: *truffle_specs
+      - <<: *compiler_tests
       - <<: *addressable_test
       - <<: *browser_sniffer_test
       - <<: *cacheable_test
@@ -245,6 +250,7 @@ pipelines:
       - <<: *library_specs
       - <<: *capi_specs
       - <<: *truffle_specs
+      - <<: *compiler_tests
       - <<: *addressable_test
       - <<: *browser_sniffer_test
       - <<: *cacheable_test
