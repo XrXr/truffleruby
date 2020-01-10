@@ -49,7 +49,9 @@ public class OrLazyValueDefinedNode extends RubyNode {
         if (conditionProfile.profile(castToBoolean(leftValue))) {
             return leftValue;
         } else {
-            rightUsage = rightUsage.next();
+            if (CompilerDirectives.inInterpreter()) {
+                rightUsage = rightUsage.next();
+            }
 
             if (rightUsage != RightUsage.MANY) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
