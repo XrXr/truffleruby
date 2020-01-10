@@ -8,20 +8,20 @@
 
 abort 'not running the GraalVM Compiler' unless TruffleRuby.jit?
 
-def foo
-  $x ||= (TrufflePrimitive.assert_not_compiled; true)
+def init_once
+  $init_once ||= (TrufflePrimitive.compiler_bailout('init compiled'); true)
 end
 
 begin
   loop do
-    y = foo
-    TrufflePrimitive.assert_compilation_constant y
+    init_once
+    TrufflePrimitive.assert_not_compiled
   end
-rescue Truffle::GraalError => e
-  if e.message.include? 'TrufflePrimitive.assert_compilation_constant'
-    puts "correctly optimises when one right side execution"
-  elsif e.message.include? 'TrufflePrimitive.assert_not_compiled'
-    puts "incorrectly does not optimise when one right side execution"
+rescue Exception => e
+  if e.message.include? 'assert_not_compiled'
+    puts "correctly does not compile in the RHS of an init once expression"
+  elsif e.message.include? 'init compiled'
+    puts "incorrectly compiles in the RHS of an init once expression"
     exit 1
   else
     puts e.message, 'some other error'
@@ -29,32 +29,43 @@ rescue Truffle::GraalError => e
   end
 end
 
+def init_many
+  $init_many ||= (TrufflePrimitive.compiler_bailout('init compiled'); true)
+end
+
 begin
   loop do
-    $x = false
-    foo
+    init_many
+    $init_many = false
+    TrufflePrimitive.assert_not_compiled
   end
-rescue Truffle::GraalError => e
-  if e.message.include? 'TrufflePrimitive.assert_not_compiled'
-    puts "correctly stops optimising when many right side executions"
+rescue Exception => e
+  if e.message.include? 'assert_not_compiled'
+    puts "incorrectly does not compile in the RHS of an init many expression"
+    exit 1
+  elsif e.message.include? 'init compiled'
+    puts "correctly compiles in the RHS of an init many expression"
   else
     puts e.message, 'some other error'
     exit 1
   end
 end
 
+def init_never
+  $init_never ||= (TrufflePrimitive.compiler_bailout('init compiled'); true)
+end
+
 begin
-  $x = true
+  $init_never = true
   loop do
-    foo
-    z = rand
-    TrufflePrimitive.assert_compilation_constant z
+    init_never
+    TrufflePrimitive.assert_not_compiled
   end
-rescue Truffle::GraalError => e
-  if e.message.include? 'TrufflePrimitive.assert_compilation_constant'
-    puts "correctly optimises when zero right side executions"
-  elsif e.message.include? 'TrufflePrimitive.assert_not_compiled'
-    puts "incorrectly does not optimise when zero right side executions"
+rescue Exception => e
+  if e.message.include? 'assert_not_compiled'
+    puts "correctly does not compile in the RHS of an init never expression"
+  elsif e.message.include? 'init compiled'
+    puts "incorrectly compiles in the RHS of an init never expression"
     exit 1
   else
     puts e.message, 'some other error'
