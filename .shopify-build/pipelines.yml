@@ -129,7 +129,6 @@ shared:
   statsd_instrument_test: &statsd_instrument_test
     <<: *truffle_run
     label: Run statsd-instrument tests
-    high_concurrency: true
     run: .shopify-build/test-gem.sh statsd-instrument
   zeitwerk_test: &zeitwerk_test
     <<: *truffle_run
