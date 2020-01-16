@@ -1,8 +1,6 @@
 name: truffleruby-shopify
 
 up:
-  - homebrew:
-    - openssl
   - ruby: 2.6.2
 
 commands:
