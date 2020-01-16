@@ -25,6 +25,7 @@ containers:
 shared:
   truffle_run: &truffle_run
     timeout: 30m
+    high_concurrency: true
     cache:
       - path: .shopify-build/build
         required: true
