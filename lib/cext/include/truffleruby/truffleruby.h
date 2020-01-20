@@ -82,13 +82,13 @@ typedef void *(*gvl_call)(void *);
 if (polyglot_as_boolean(polyglot_invoke(RUBY_CEXT, "warn?"))) { \
   RUBY_INVOKE(rb_mKernel, "warn", rb_sprintf(FORMAT, ##__VA_ARGS__));   \
 } \
-} while (0);
+} while (0)
 
 #define rb_warning(FORMAT, ...) do { \
 if (polyglot_as_boolean(polyglot_invoke(RUBY_CEXT, "warning?"))) { \
   RUBY_INVOKE(rb_mKernel, "warn", rb_sprintf(FORMAT, ##__VA_ARGS__)); \
 } \
-} while (0);
+} while (0)
 
 MUST_INLINE int rb_tr_scan_args(int argc, VALUE *argv, const char *format, VALUE *v1, VALUE *v2, VALUE *v3, VALUE *v4, VALUE *v5, VALUE *v6, VALUE *v7, VALUE *v8, VALUE *v9, VALUE *v10);
 
