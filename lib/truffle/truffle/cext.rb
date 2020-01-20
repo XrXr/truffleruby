@@ -13,7 +13,6 @@ module Truffle::CExt
 
   DATA_HOLDER = Object.new
   DATA_MEMSIZER = Object.new
-  ALLOCATOR_FUNC = Object.new
   RB_TYPE = Object.new
   ALLOCATOR_FUNC = Object.new
 
