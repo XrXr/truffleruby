@@ -346,8 +346,16 @@ static VALUE object_spec_rb_class_inherited_p(VALUE self, VALUE mod, VALUE arg) 
 }
 
 static VALUE speced_allocator(VALUE klass) {
-  VALUE instance = rb_newobj_of(klass, 0);
-  rb_funcall(instance, rb_intern("instance_variable_set"), 2, ID2SYM(rb_intern("@from_custom_allocator")), Qtrue);
+  VALUE flags = 0;
+  if (rb_class_inherited_p(klass, rb_cString)) {
+    flags = T_STRING;
+  } else if (rb_class_inherited_p(klass, rb_cArray)) {
+    flags = T_ARRAY;
+  } else {
+    flags = T_OBJECT;
+  }
+  VALUE instance = rb_newobj_of(klass, flags);
+  rb_iv_set(instance, "@from_custom_allocator", Qtrue);
   return instance;
 }
 
@@ -366,9 +374,9 @@ static VALUE speced_allocator_p(VALUE self, VALUE klass) {
   return (allocator == speced_allocator) ? Qtrue : Qfalse;
 }
 
-static VALUE allocator_nil_p(VALUE self, VALUE klass) {
+static VALUE custom_alloc_func_p(VALUE self, VALUE klass) {
   rb_alloc_func_t allocator = rb_get_alloc_func(klass);
-  return allocator ? Qfalse : Qtrue;
+  return allocator ? Qtrue : Qfalse;
 }
 
 void Init_object_spec(void) {
@@ -440,7 +448,7 @@ void Init_object_spec(void) {
   rb_define_method(cls, "rb_define_alloc_func", define_alloc_func, 1);
   rb_define_method(cls, "rb_undef_alloc_func", undef_alloc_func, 1);
   rb_define_method(cls, "speced_allocator?", speced_allocator_p, 1);
-  rb_define_method(cls, "allocator_nil?", allocator_nil_p, 1);
+  rb_define_method(cls, "custom_alloc_func?", custom_alloc_func_p, 1);
 }
 
 #ifdef __cplusplus

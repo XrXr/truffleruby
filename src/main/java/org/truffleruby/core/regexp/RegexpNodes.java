@@ -211,8 +211,7 @@ public abstract class RegexpNodes {
         @Specialization(guards = "isRubyString(raw)")
         protected DynamicObject quoteString(DynamicObject raw) {
             final Rope rope = StringOperations.rope(raw);
-            boolean isAsciiOnly = rope.getEncoding().isAsciiCompatible() && rope.getCodeRange() == CodeRange.CR_7BIT;
-            return getMakeStringNode().fromRope(ClassicRegexp.quote19(rope, isAsciiOnly));
+            return getMakeStringNode().fromRope(ClassicRegexp.quote19(rope));
         }
 
         @Specialization(guards = "isRubySymbol(raw)")
@@ -354,7 +353,7 @@ public abstract class RegexpNodes {
 
     }
 
-    @CoreMethod(names = "__allocate__", constructor = true, visibility = Visibility.PRIVATE)
+    @CoreMethod(names = { "__allocate__", "__layout_allocate__" }, constructor = true, visibility = Visibility.PRIVATE)
     public abstract static class AllocateNode extends CoreMethodArrayArgumentsNode {
 
         @Child private AllocateObjectNode allocateNode = AllocateObjectNode.create();

@@ -1,7 +1,7 @@
 # Compatibility
 
 TruffleRuby aims to be fully compatible with the standard implementation of
-Ruby, MRI, version 2.6.2, revision 67232.
+Ruby, MRI, version 2.6.5.
 
 Any incompatibility with MRI is considered a bug, except for rare cases detailed below.
 If you find an incompatibility with MRI, please [report](https://github.com/oracle/truffleruby/issues) it to us.
@@ -36,7 +36,7 @@ Additionally, TruffleRuby defines:
 
 In the C API, we define a preprocessor macro `TRUFFLERUBY`.
 
-## Features entirely missing
+## Features Entirely Missing
 
 #### Continuations and `callcc`
 
@@ -87,11 +87,7 @@ more explanation on this.
 
 `RubyVM` is not intended for users and is not implemented.
 
-#### RDoc HTML generation
-
-TruffleRuby does not include the Darkfish theme for RDoc.
-
-## Features with major differences
+## Features with Major Differences
 
 #### Threads run in parallel
 
@@ -125,7 +121,7 @@ MRI provides some classes that are described in the documentation as being only
 available on MRI (C Ruby). We implement these classes if it's practical to do
 so, but this isn't always the case. For example `RubyVM` is not available.
 
-## Features with subtle differences
+## Features with Subtle Differences
 
 #### Command line switches
 
@@ -206,7 +202,7 @@ signals are also unavailable on MRI.
 When TruffleRuby is run as part of a polyglot application, any signals that are
 handled by another language become unavailable for TruffleRuby to trap.
 
-## Features with very low performance
+## Features with Very Low Performance
 
 #### `ObjectSpace`
 
@@ -289,7 +285,7 @@ not clear if this will ever be a priority.
 We do not have any plans at the moment to provide support for Rubinius'
 extensions to Ruby.
 
-## Features not yet supported in native configuration
+## Features Not Yet Supported in Native Configuration
 
 Running TruffleRuby in the native configuration is mostly the same as running
 on the JVM. There are differences in resource management, as both VMs use

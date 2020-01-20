@@ -86,7 +86,7 @@ import com.oracle.truffle.api.profiles.IntValueProfile;
 @CoreModule(value = "Array", isClass = true)
 public abstract class ArrayNodes {
 
-    @CoreMethod(names = "__allocate__", constructor = true, visibility = Visibility.PRIVATE)
+    @CoreMethod(names = { "__allocate__", "__layout_allocate__" }, constructor = true, visibility = Visibility.PRIVATE)
     public abstract static class AllocateNode extends CoreMethodArrayArgumentsNode {
 
         @Child private AllocateObjectNode allocateNode = AllocateObjectNode.create();
@@ -278,6 +278,9 @@ public abstract class ArrayNodes {
             argumentNames = { "index_start_or_range", "length_or_value", "value" })
     public abstract static class IndexSetPrimitiveNode extends ArrayIndexSetNode {
 
+        // This primitive inherits from the same base as IndexSetNode and is called in its fallback.
+        // Hence we need to avoid infinite recursion on fallback.
+
         protected abstract RubyNode[] getArguments();
 
         @Override
@@ -429,7 +432,11 @@ public abstract class ArrayNodes {
         }
 
         @ExplodeLoop
-        @Specialization(guards = { "wasProvided(first)", "rest.length > 0", "rest.length == cachedLength" })
+        @Specialization(guards = {
+                "wasProvided(first)",
+                "rest.length > 0",
+                "rest.length == cachedLength",
+                "cachedLength <= 8" })
         protected Object concatMany(DynamicObject array, DynamicObject first, Object[] rest,
                 @Cached("rest.length") int cachedLength,
                 @Cached("createInternal()") ToAryNode toAryNode,
@@ -442,11 +449,10 @@ public abstract class ArrayNodes {
             DynamicObject copy = createArray(store, size);
             DynamicObject result = appendManyNode.executeAppendMany(array, toAryNode.executeToAry(first));
             for (int i = 0; i < cachedLength; ++i) {
-                if (selfArgProfile.profile(rest[i] == array)) {
-                    result = appendManyNode.executeAppendMany(array, copy);
-                } else {
-                    result = appendManyNode.executeAppendMany(array, toAryNode.executeToAry(rest[i]));
-                }
+                final DynamicObject argOrCopy = selfArgProfile.profile(rest[i] == array)
+                        ? copy
+                        : toAryNode.executeToAry(rest[i]);
+                result = appendManyNode.executeAppendMany(array, argOrCopy);
             }
             return result;
         }
