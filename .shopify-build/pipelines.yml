@@ -134,6 +134,10 @@ shared:
     <<: *truffle_run
     label: Run statsd-instrument tests
     run: .shopify-build/test-gem.sh statsd-instrument
+  webauthn_ruby_test: &webauthn_ruby_test
+    <<: *truffle_run
+    label: Run webauthn-ruby tests
+    run: .shopify-build/test-gem.sh webauthn-ruby
   zeitwerk_test: &zeitwerk_test
     <<: *truffle_run
     label: Run zeitwerk tests
@@ -215,6 +219,7 @@ pipelines:
       - <<: *snappy_test
       - <<: *statsd_instrument_test
       - <<: *protobuf_test
+      - <<: *webauthn_ruby_test
       - <<: *zeitwerk_test
       - wait
       - block: Produce a tarball artifact
@@ -270,6 +275,7 @@ pipelines:
       - <<: *snappy_test
       - <<: *statsd_instrument_test
       - <<: *protobuf_test
+      - <<: *webauthn_ruby_test
       - <<: *zeitwerk_test
       - block: Produce a tarball artifact
       - label: Package
