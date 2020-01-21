@@ -37,7 +37,7 @@ public abstract class ExceptionNodes {
 
     protected final static String CUSTOM_BACKTRACE_FIELD = "@custom_backtrace";
 
-    @CoreMethod(names = "__allocate__", constructor = true, visibility = Visibility.PRIVATE)
+    @CoreMethod(names = { "__allocate__", "__layout_allocate__" }, constructor = true, visibility = Visibility.PRIVATE)
     public abstract static class AllocateNode extends CoreMethodArrayArgumentsNode {
 
         @Child private AllocateObjectNode allocateObjectNode = AllocateObjectNode.create();
@@ -187,7 +187,7 @@ public abstract class ExceptionNodes {
                 DynamicObject backtraceLocations = Layouts.EXCEPTION.getBacktraceLocations(exception);
                 if (hasLocationsProfile.profile(backtraceLocations == null)) {
                     Backtrace backtrace = Layouts.EXCEPTION.getBacktrace(exception);
-                    backtraceLocations = backtrace.getBacktraceLocations(GetBacktraceException.UNLIMITED);
+                    backtraceLocations = backtrace.getBacktraceLocations(GetBacktraceException.UNLIMITED, null);
                     Layouts.EXCEPTION.setBacktraceLocations(exception, backtraceLocations);
                 }
                 return backtraceLocations;

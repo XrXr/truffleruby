@@ -113,8 +113,12 @@ class << ENV
   end
   alias_method :each_pair, :each
 
-  def each_key(&block)
-    @variables.each(&block)
+  def each_key
+    return to_enum(:each_key) { size } unless block_given?
+    @variables.each do |name|
+      yield set_encoding(name)
+    end
+    self
   end
 
   def each_value
@@ -188,6 +192,8 @@ class << ENV
   end
 
   def has_value?(value)
+    value = Truffle::Type.rb_check_convert_type(value, String, :to_str)
+    return nil if value.nil?
     each { |_k, v| return true if v == value }
     false
   end
@@ -199,10 +205,8 @@ class << ENV
   end
 
   def index(value)
-    each do |k, v|
-      return k if v == value
-    end
-    nil
+    warn 'warning: ENV.index is deprecated; use ENV.key'
+    key(value)
   end
 
   def invert
@@ -210,7 +214,11 @@ class << ENV
   end
 
   def key(value)
-    index(value)
+    value = StringValue(value);
+    each do |k, v|
+      return k if v == value
+    end
+    nil
   end
 
   def keys
@@ -235,12 +243,19 @@ class << ENV
   end
 
   def replace(other)
-    clear
-    other.each { |k, v| self[k] = v }
+    return self if equal?(other)
+    other = Truffle::Type.rb_convert_type(other, Hash, :to_hash)
+    keys_to_delete = keys
+    other.each do |k, v|
+      self[k] = v
+      keys_to_delete.delete(k)
+    end
+    keys_to_delete.each { |k| delete(k) }
+    self
   end
 
   def select(&blk)
-    return to_enum { size } unless block_given?
+    return to_enum(:select) { size } unless block_given?
     to_hash.select(&blk)
   end
   alias_method :filter, :select
@@ -280,11 +295,14 @@ class << ENV
   end
 
   def update(other)
+    return self if equal?(other)
+    other = Truffle::Type.rb_convert_type(other, Hash, :to_hash)
     if block_given?
       other.each { |k, v| self[k] = yield(k, lookup(k), v) }
     else
       other.each { |k, v| self[k] = v }
     end
+    self
   end
 
   def keep_if(&block)
@@ -306,9 +324,21 @@ class << ENV
   end
 
   def rassoc(value)
-    value = StringValue(value)
-    key = index(value)
+    value = Truffle::Type.rb_check_convert_type(value, String, :to_str)
+    return nil if value.nil?
+    key = key(value)
     key ? [key, value] : nil
+  end
+
+  def slice(*keys)
+    result = {}
+    keys.each do |k|
+      value = lookup(k)
+      unless value.nil?
+        result[k] = value
+      end
+    end
+    result
   end
 
   def set_encoding(value)

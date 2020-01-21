@@ -144,9 +144,9 @@ module Utilities
         raise 'Could not parse JDK update and JVMCI version from $JVMCI_VERSION'
       end
     else
-      ci = File.read("#{TRUFFLERUBY_DIR}/ci.jsonnet")
-      unless /JAVA_HOME: \{\n\s*name: "openjdk",\n\s*version: "8u(\d+)-(jvmci-.+)",/ =~ ci
-        raise 'JVMCI version not found in ci.jsonnet'
+      ci = File.read("#{TRUFFLERUBY_DIR}/common.json")
+      unless /{\s*"name"\s*:\s*"openjdk"\s*,\s*"version"\s*:\s*"8u(\d+)-(jvmci-[^"]+)"\s*,/ =~ ci
+        raise 'JVMCI version not found in jdks.json'
       end
     end
     update, jvmci = $1, $2
@@ -185,19 +185,24 @@ module Utilities
     return @ruby_launcher if defined? @ruby_launcher
 
     @ruby_name ||= ENV['RUBY_BIN'] || 'jvm'
-    @ruby_launcher = if @ruby_name == 'ruby'
-                       ENV['RBENV_ROOT'] ? `rbenv which ruby`.chomp : which('ruby')
-                     elsif File.executable?(@ruby_name)
-                       @ruby_name
-                     else
-                       "#{TRUFFLERUBY_DIR}/mxbuild/truffleruby-#{@ruby_name}/#{language_dir}/ruby/bin/ruby"
-                     end
+    ruby_launcher = if @ruby_name == 'ruby'
+                      ENV['RBENV_ROOT'] ? `rbenv which ruby`.chomp : which('ruby')
+                    elsif File.executable?(@ruby_name)
+                      @ruby_name
+                    else
+                      graalvm = "#{TRUFFLERUBY_DIR}/mxbuild/truffleruby-#{@ruby_name}"
+                      "#{graalvm}/#{language_dir(graalvm)}/ruby/bin/ruby"
+                    end
 
-    raise "The Ruby executable #{@ruby_launcher} does not exist" unless File.exist?(@ruby_launcher)
-    raise "The Ruby executable #{@ruby_launcher} is not executable" unless File.executable?(@ruby_launcher)
+    raise "The Ruby executable #{ruby_launcher} does not exist" unless File.exist?(ruby_launcher)
+    ruby_launcher = File.realpath(ruby_launcher)
+
+    raise "The Ruby executable #{ruby_launcher} is not executable" unless File.executable?(ruby_launcher)
+    @ruby_launcher = ruby_launcher
 
     unless @silent
-      shortened_path = @ruby_launcher.sub(%r[^#{Regexp.escape TRUFFLERUBY_DIR}/], '').sub(%r[/bin/ruby$], '').sub(%r[/#{language_dir}/ruby$], '')
+      shortened_path = @ruby_launcher.sub(%r[^#{Regexp.escape TRUFFLERUBY_DIR}/], '').sub(%r[/bin/(ruby|truffleruby)$], '')
+      shortened_path = shortened_path.sub(%r[/#{language_dir(graalvm_home)}/ruby$], '') if graalvm_home
       tags = [*('Native' if truffleruby_native?),
               *('Interpreted' if truffleruby? && !truffleruby_compiler?),
               truffleruby? ? 'TruffleRuby' : 'a Ruby',
@@ -210,8 +215,23 @@ module Utilities
     ENV['RUBY_BIN'] = ruby_launcher
     @ruby_launcher
   end
-
   alias_method :require_ruby_launcher!, :ruby_launcher
+
+  def ruby_home
+    File.expand_path('../..', ruby_launcher)
+  end
+
+  def graalvm_home
+    up = if ruby_home.end_with?('jre/languages/ruby')
+           3
+         elsif ruby_home.end_with?('languages/ruby')
+           2
+         else
+           nil # standalone
+         end
+    return nil unless up
+    File.expand_path((['..'] * up).join('/'), ruby_home)
+  end
 
   def truffleruby_native!
     unless truffleruby_native?
@@ -239,8 +259,6 @@ module Utilities
     return @truffleruby_compiler = true if truffleruby_native?
 
     # Detect if the compiler is present by reading the $graalvm_home/release file
-    # Use realpath to always use the executable in languages/ruby/bin/
-    graalvm_home = File.expand_path("../../../..#{'/..' * language_dir.count('/')}", File.realpath(ruby_launcher))
     @truffleruby_compiler = File.readlines("#{graalvm_home}/release").grep(/^COMMIT_INFO=/).any? do |line|
       line.include?('"compiler":') || line.include?("'compiler':")
     end
@@ -465,10 +483,9 @@ module Utilities
     @java_home ||= ci? ? nil : ENV['JVMCI_HOME'] || install_jvmci
   end
 
-  def language_dir
-    java_home = find_java_home || ENV.fetch('JAVA_HOME')
-    raise "Java home #{java_home} does not exist" unless Dir.exist?(java_home)
-    if Dir.exist?("#{java_home}/jmods")
+  def language_dir(graalvm_home)
+    raise "GraalVM #{graalvm_home} does not exist" unless Dir.exist?(graalvm_home)
+    if Dir.exist?("#{graalvm_home}/jmods")
       'languages'
     else
       'jre/languages'
@@ -907,7 +924,7 @@ module Commands
       # TODO (eregon, 4 Feb 2019): This should run on GraalVM, not development jars
       # The home needs to be set, otherwise TruffleFile does not allow access to files in the TruffleRuby home,
       # because it cannot find the correct home.
-      home = "-Druby.home=#{TRUFFLERUBY_DIR}/mxbuild/truffleruby-jvm/#{language_dir}/ruby"
+      home = "-Druby.home=#{ruby_home}"
       mx 'unittest', home, *tests
     when 'tck' then mx 'tck', *rest
     else
@@ -1143,7 +1160,7 @@ EOS
 
         # Test that running the post-install hook works, even when opt &
         # llvm-link are not on PATH, as it is the case on macOS.
-        sh({'TRUFFLERUBY_RECOMPILE_OPENSSL' => 'true'}, "mxbuild/truffleruby-jvm/#{language_dir}/ruby/lib/truffle/post_install_hook.sh")
+        sh({'TRUFFLERUBY_RECOMPILE_OPENSSL' => 'true'}, "#{ruby_home}/lib/truffle/post_install_hook.sh")
 
       when 'gems'
         # Test that we can compile and run some real C extensions
@@ -1745,8 +1762,6 @@ EOS
   end
 
   def benchmark(*args)
-    require_ruby_launcher!
-
     vm_args = []
     if truffleruby?
       vm_args << '--experimental-options' << '--engine.CompilationExceptionsAreFatal'
@@ -1917,7 +1932,7 @@ EOS
     build_dir = mx(*mx_args, 'graalvm-home', capture: true).lines.last.chomp
 
     dest = "#{TRUFFLERUBY_DIR}/mxbuild/#{name}"
-    dest_ruby = dest # install the full GraalVM "#{dest}/#{language_dir}/ruby"
+    dest_ruby = "#{dest}/#{language_dir(build_dir)}/ruby"
     dest_bin = "#{dest_ruby}/bin"
     FileUtils.rm_rf dest
     FileUtils.cp_r build_dir, dest
@@ -2151,6 +2166,8 @@ EOS
     #  - includes verifylibraryurls though
     #  - building with jdt in the ci definition could be dropped since fullbuild builds with JDT
     mx 'spotbugs'
+
+    mx 'verify-ci'
 
     check_parser
     check_documentation_urls

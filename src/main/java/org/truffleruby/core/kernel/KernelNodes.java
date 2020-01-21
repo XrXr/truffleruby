@@ -318,16 +318,7 @@ public abstract class KernelNodes {
             // Always skip #caller_locations.
             final int omitted = omit + 1;
             final Backtrace backtrace = getContext().getCallStack().getBacktrace(this, omitted);
-
-            // We can't set an effective limit when dealing with negative range endings.
-            final int limit = length < 0
-                    ? GetBacktraceException.UNLIMITED
-                    : omitted + length;
-
-            // Fill in the stack trace.
-            backtrace.getActivations(new GetBacktraceException(this, limit));
-
-            return backtrace.getBacktraceLocations(length);
+            return backtrace.getBacktraceLocations(length, this);
         }
     }
 
@@ -1279,7 +1270,7 @@ public abstract class KernelNodes {
     }
 
     @CoreMethod(names = "nil?", needsSelf = false)
-    public abstract static class NilNode extends CoreMethodArrayArgumentsNode {
+    public abstract static class IsNilNode extends CoreMethodArrayArgumentsNode {
 
         @Specialization
         protected boolean isNil() {

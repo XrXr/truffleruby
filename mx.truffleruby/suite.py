@@ -9,7 +9,7 @@ suite = {
                 "name": "tools",
                 "subdir": True,
                 # version must always be equal to the version of the "sulong" import below
-                "version": "33e63e0be7114beb35a8875ed9761f37399c3556",
+                "version": "0321f996b2ecf78184797487b3c929eb079649f0",
                 "urls": [
                     {"url": "git@github.com:Shopify/graal-shopify.git", "kind": "git"},
                     {"url": "https://curio.ssw.jku.at/nexus/content/repositories/snapshots", "kind": "binary"},
@@ -19,7 +19,7 @@ suite = {
                 "name": "sulong",
                 "subdir": True,
                 # version must always be equal to the version of the "tools" import above
-                "version": "33e63e0be7114beb35a8875ed9761f37399c3556",
+                "version": "0321f996b2ecf78184797487b3c929eb079649f0",
                 "urls": [
                     {"url": "git@github.com:Shopify/graal-shopify.git", "kind": "git"},
                     {"url": "https://curio.ssw.jku.at/nexus/content/repositories/snapshots", "kind": "binary"},

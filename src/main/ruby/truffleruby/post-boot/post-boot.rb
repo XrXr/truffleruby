@@ -71,14 +71,24 @@ if Truffle::Boot.preinitializing?
   if old_home
     # We need to fix all paths which capture the image build-time home to point
     # to the runtime home.
+
+    paths_starting_with_home = []
+    [$LOAD_PATH, $LOADED_FEATURES].each do |array|
+      array.each do |path|
+        if path.start_with?(old_home)
+          path.replace Truffle::Ropes.flatten_rope(path[old_home.size..-1])
+          paths_starting_with_home << path
+        else
+          raise "Path #{path.inspect} in $LOAD_PATH or $LOADED_FEATURES was expected to start with #{old_home}"
+        end
+      end
+    end
+    old_home = nil # Avoid capturing the old home in the blocks below
+
     Truffle::Boot.delay do
       new_home = Truffle::Boot.ruby_home
-      [$LOAD_PATH, $LOADED_FEATURES].each do |array|
-        array.each do |path|
-          if path.start_with?(old_home)
-            path.replace(new_home + path[old_home.size..-1])
-          end
-        end
+      paths_starting_with_home.each do |path|
+        path.replace(new_home + path)
       end
     end
   end

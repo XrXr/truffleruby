@@ -88,44 +88,49 @@ module Kernel
   end
   module_function :Hash
 
-  def Integer(obj, base=nil)
+  def Integer(obj, base=0, exception: true)
     obj = Truffle::Interop.unbox_if_needed(obj)
+    converted_base = Truffle::Type.rb_check_to_integer(base, :to_int)
+    base = converted_base.nil? ? 0 : converted_base
+    raise_exception = !exception.equal?(false)
 
-    if obj.kind_of? String
-      if obj.empty?
-        raise ArgumentError, 'invalid value for Integer: (empty string)'
-      else
-        base ||= 0
-        return TrufflePrimitive.string_to_inum(obj, base, true)
-      end
-    end
-
-    if base
-      raise ArgumentError, 'base is only valid for String values'
-    end
-
-    case obj
-    when Integer
-      obj
-    when Float
-      if obj.nan? or obj.infinite?
-        raise FloatDomainError, "unable to coerce #{obj} to Integer"
-      else
-        obj.to_int
-      end
-    when NilClass
-      raise TypeError, "can't convert nil into Integer"
+    if String === obj
+      TrufflePrimitive.string_to_inum(obj, base, true, !exception.equal?(false))
     else
-      # Can't use coerce_to or try_convert because I think there is an
-      # MRI bug here where it will return the value without checking
-      # the return type.
-      if obj.respond_to? :to_int
-        if val = obj.to_int
-          return val
+      bad_base_check = Proc.new do
+        if base != 0
+          return nil unless raise_exception
+          raise ArgumentError, 'base is only valid for String values'
         end
       end
+      case obj
+      when Integer
+        bad_base_check.call
+        obj
+      when Float
+        bad_base_check.call
+        if obj.nan? or obj.infinite?
+          return nil unless raise_exception
+        end
+        # TODO BJF 14-Jan-2020 Add fixable conversion logic
+        obj.to_int
+      when NilClass
+        bad_base_check.call
+        return nil unless raise_exception
+        raise TypeError, "can't convert nil into Integer"
+      else
+        if base != 0
+          converted_to_str_obj = Truffle::Type.rb_check_convert_type(obj, String, :to_str)
+          return TrufflePrimitive.string_to_inum(converted_to_str_obj, base, true, raise_exception) unless converted_to_str_obj.nil?
+          return nil unless raise_exception
+          raise ArgumentError, 'base is only valid for String values'
+        end
+        converted_to_int_obj = Truffle::Type.rb_check_to_integer(obj, :to_int)
+        return converted_to_int_obj unless converted_to_int_obj.nil?
 
-      Truffle::Type.coerce_to obj, Integer, :to_i
+        return Truffle::Type.rb_check_to_integer(obj, :to_i) unless raise_exception
+        Truffle::Type.rb_convert_type(obj, Integer, :to_i)
+      end
     end
   end
   module_function :Integer
@@ -146,18 +151,12 @@ module Kernel
 
   ##
   # MRI uses a macro named StringValue which has essentially the same
-  # semantics as obj.coerce_to(String, :to_str), but rather than using that
+  # semantics as Truffle::Type.rb_convert_type obj, String, :to_str, but rather than using that
   # long construction everywhere, we define a private method similar to
   # String().
-  #
-  # Another possibility would be to change String() as follows:
-  #
-  #   String(obj, sym=:to_s)
-  #
-  # and use String(obj, :to_str) instead of StringValue(obj)
 
   def StringValue(obj)
-    Truffle::Type.coerce_to obj, String, :to_str
+    Truffle::Type.rb_convert_type obj, String, :to_str
   end
   module_function :StringValue
 
@@ -511,14 +510,30 @@ module Kernel
   module_function :syscall
 
   def system(*args)
+    options = Truffle::Type.try_convert(args.last, Hash, :to_hash)
+    exception = if options
+                  args[-1] = options
+                  options.delete(:exception)
+                else
+                  false
+                end
+
     begin
       pid = Process.spawn(*args)
-    rescue SystemCallError
+    rescue SystemCallError => e
+      raise e if exception
       return nil
     end
 
     Process.waitpid pid
-    $?.exitstatus == 0
+    result = $?.exitstatus == 0
+    return true if result
+    if exception
+      # TODO  (bjfish, 9 Jan 2020): refactoring needed for more descriptive errors
+      raise RuntimeError, 'command failed'
+    else
+      return false
+    end
   end
   module_function :system
 
@@ -576,7 +591,14 @@ module Kernel
   module_function :__dir__
 
   def printf(*args)
-    print sprintf(*args)
+    return nil if args.empty?
+    if Truffle::Type.object_kind_of?(args[0], String)
+      print sprintf(*args)
+    else
+      io = args.shift
+      io.write(sprintf(*args))
+    end
+    nil
   end
   module_function :printf
 
