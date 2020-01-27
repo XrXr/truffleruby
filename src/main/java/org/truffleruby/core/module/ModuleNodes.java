@@ -336,7 +336,7 @@ public abstract class ModuleNodes {
                         this));
             }
 
-            InternalMethod aliasMethod = method.withName(getContext(), newName);
+            InternalMethod aliasMethod = method.withName(newName);
 
             addMethodNode.executeAddMethod(module, aliasMethod, aliasMethod.getVisibility());
             return module;
@@ -1127,7 +1127,7 @@ public abstract class ModuleNodes {
                 }
             }
 
-            Layouts.MODULE.getFields(module).addMethod(getContext(), this, method.withName(getContext(), name));
+            Layouts.MODULE.getFields(module).addMethod(getContext(), this, method.withName(name));
             return getSymbol(name);
         }
 
@@ -1215,7 +1215,7 @@ public abstract class ModuleNodes {
         @TruffleBoundary
         private DynamicObject addMethod(DynamicObject module, String name, InternalMethod method,
                 MaterializedFrame callerFrame) {
-            method = method.withName(getContext(), name);
+            method = method.withName(name);
 
             final Visibility visibility = GetCurrentVisibilityNode.getVisibilityFromNameAndFrame(name, callerFrame);
             addMethodNode.executeAddMethod(module, method, visibility);

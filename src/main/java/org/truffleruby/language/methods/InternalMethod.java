@@ -227,7 +227,7 @@ public class InternalMethod implements ObjectGraphNode {
         }
     }
 
-    public InternalMethod withName(RubyContext context, String newName) {
+    public InternalMethod withName(String newName) {
         if (newName.equals(name)) {
             return this;
         } else {
@@ -246,7 +246,7 @@ public class InternalMethod implements ObjectGraphNode {
                     callTarget,
                     capturedBlock,
                     originalMethod,
-                    context.getSymbolTable().getSymbol(newName));
+                    methodNameSymbol);
         }
     }
 
