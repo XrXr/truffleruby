@@ -1,3 +1,26 @@
+# 20.1.0
+
+New features:
+
+
+Bug fixes:
+
+* Fixed `Exception#dup` to copy exception backtrace string array.
+* Fixed `rb_warn` and `rb_warning` when used as statements (#1886, @chrisseaton).
+* Fixed `NameError.new` and `NoMethodError.new` `:receiver` argument.
+* Correctly handle large numbers of arguments to `rb_funcall` (#1882).
+* Added arity check to `Module#{include, prepend}`.
+* Fix `OpenSSL::Digest.{digest,hexdigest,base64digest}` to handle `algorithm, data` arguments (#1889, @bdewater).
+* Fixed `SystemCallError.new` parameter conversion.
+* Fixed `File#{chmod, umask}` argument conversion check.
+* Added warning in `Hash.[]` for non-array elements.
+
+Compatibility:
+
+* Implemented `Float#{floor, ceil}` with `ndigits` argument.
+
+* Implemented `-p` CLI option.
+
 # 20.0.0
 
 New features:
@@ -109,8 +132,8 @@ Compatibility:
 * Implemented `Random.bytes`.
 * Implemented `Random.random_number`.
 * Added the ability to parse endless ranges.
-* Made `Range#to_a` compatible with endless ranges.
-* Made `Array#[]` and `Array#[]= ` compatible with endless ranges.
+* Made `Range#{to_a, step, each, bsearch, step, last, max, min, to_s, ==}` compatible with endless ranges.
+* Made `Array#{[], []=, values_at, fill, slice!}` compatible with endless ranges.
 
 Performance:
 

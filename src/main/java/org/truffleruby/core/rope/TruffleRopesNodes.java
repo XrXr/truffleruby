@@ -10,9 +10,9 @@
 package org.truffleruby.core.rope;
 
 import org.jcodings.specific.UTF8Encoding;
-import org.truffleruby.builtins.CoreModule;
 import org.truffleruby.builtins.CoreMethod;
 import org.truffleruby.builtins.CoreMethodArrayArgumentsNode;
+import org.truffleruby.builtins.CoreModule;
 import org.truffleruby.core.string.StringNodes;
 import org.truffleruby.core.string.StringOperations;
 import org.truffleruby.core.string.StringUtils;
@@ -137,9 +137,7 @@ public abstract class TruffleRopesNodes {
         protected DynamicObject flattenRope(DynamicObject string,
                 @Cached RopeNodes.FlattenNode flattenNode,
                 @Cached StringNodes.MakeStringNode makeStringNode) {
-
-            final Rope flattened = flattenNode.executeFlatten(StringOperations.rope(string));
-
+            final LeafRope flattened = flattenNode.executeFlatten(StringOperations.rope(string));
             return makeStringNode.fromRope(flattened);
         }
 

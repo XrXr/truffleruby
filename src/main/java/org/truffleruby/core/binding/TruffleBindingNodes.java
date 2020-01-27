@@ -9,9 +9,9 @@
  */
 package org.truffleruby.core.binding;
 
-import org.truffleruby.builtins.CoreModule;
 import org.truffleruby.builtins.CoreMethod;
 import org.truffleruby.builtins.CoreMethodArrayArgumentsNode;
+import org.truffleruby.builtins.CoreModule;
 import org.truffleruby.collections.Memo;
 
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
@@ -25,7 +25,7 @@ import com.oracle.truffle.api.source.SourceSection;
 @CoreModule("Truffle::Binding")
 public abstract class TruffleBindingNodes {
 
-    @CoreMethod(names = "of_caller", isModuleFunction = true)
+    @CoreMethod(names = "of_caller", onSingleton = true)
     public abstract static class OfCallerNode extends CoreMethodArrayArgumentsNode {
 
         @TruffleBoundary

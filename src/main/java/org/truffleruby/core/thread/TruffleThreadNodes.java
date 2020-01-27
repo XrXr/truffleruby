@@ -10,9 +10,9 @@
 package org.truffleruby.core.thread;
 
 import org.truffleruby.Layouts;
-import org.truffleruby.builtins.CoreModule;
 import org.truffleruby.builtins.CoreMethod;
 import org.truffleruby.builtins.CoreMethodArrayArgumentsNode;
+import org.truffleruby.builtins.CoreModule;
 import org.truffleruby.core.array.ArrayGuards;
 import org.truffleruby.core.array.ArrayOperationNodes;
 import org.truffleruby.core.array.ArrayStrategy;
@@ -29,7 +29,7 @@ import com.oracle.truffle.api.object.DynamicObject;
 @CoreModule("Truffle::ThreadOperations")
 public class TruffleThreadNodes {
 
-    @CoreMethod(names = "ruby_caller", isModuleFunction = true, required = 1)
+    @CoreMethod(names = "ruby_caller", onSingleton = true, required = 1)
     @ImportStatic(ArrayGuards.class)
     public abstract static class FindRubyCaller extends CoreMethodArrayArgumentsNode {
 

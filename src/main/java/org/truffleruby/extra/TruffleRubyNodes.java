@@ -12,10 +12,10 @@ package org.truffleruby.extra;
 import org.jcodings.specific.USASCIIEncoding;
 import org.truffleruby.RubyContext;
 import org.truffleruby.RubyLanguage;
-import org.truffleruby.builtins.CoreModule;
 import org.truffleruby.builtins.CoreMethod;
 import org.truffleruby.builtins.CoreMethodArrayArgumentsNode;
 import org.truffleruby.builtins.CoreMethodNode;
+import org.truffleruby.builtins.CoreModule;
 import org.truffleruby.core.rope.RopeOperations;
 import org.truffleruby.core.string.StringOperations;
 import org.truffleruby.extra.ffi.Pointer;
@@ -79,7 +79,7 @@ public abstract class TruffleRubyNodes {
 
     }
 
-    @CoreMethod(names = "full_memory_barrier", isModuleFunction = true)
+    @CoreMethod(names = "full_memory_barrier", onSingleton = true)
     public abstract static class FullMemoryBarrierPrimitiveNode extends CoreMethodNode {
 
         @Specialization

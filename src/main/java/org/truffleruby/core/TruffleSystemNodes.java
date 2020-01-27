@@ -43,15 +43,14 @@ import java.nio.file.NoSuchFileException;
 import java.util.Set;
 import java.util.logging.Level;
 
-import com.oracle.truffle.api.TruffleFile;
 import org.jcodings.Encoding;
 import org.jcodings.specific.UTF8Encoding;
 import org.truffleruby.Layouts;
 import org.truffleruby.RubyLanguage;
-import org.truffleruby.builtins.CoreModule;
 import org.truffleruby.builtins.CoreMethod;
 import org.truffleruby.builtins.CoreMethodArrayArgumentsNode;
 import org.truffleruby.builtins.CoreMethodNode;
+import org.truffleruby.builtins.CoreModule;
 import org.truffleruby.builtins.Primitive;
 import org.truffleruby.builtins.PrimitiveArrayArgumentsNode;
 import org.truffleruby.builtins.YieldingCoreMethodNode;
@@ -66,6 +65,7 @@ import org.truffleruby.language.control.RaiseException;
 import org.truffleruby.platform.Platform;
 
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleOptions;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -183,7 +183,7 @@ public abstract class TruffleSystemNodes {
 
     }
 
-    @CoreMethod(names = "synchronized", isModuleFunction = true, required = 1, needsBlock = true)
+    @CoreMethod(names = "synchronized", onSingleton = true, required = 1, needsBlock = true)
     public abstract static class SynchronizedPrimitiveNode extends YieldingCoreMethodNode {
 
         // We must not allow to synchronize on boxed primitives.
@@ -195,7 +195,7 @@ public abstract class TruffleSystemNodes {
         }
     }
 
-    @CoreMethod(names = "log", isModuleFunction = true, required = 2)
+    @CoreMethod(names = "log", onSingleton = true, required = 2)
     public abstract static class LogNode extends CoreMethodArrayArgumentsNode {
 
         @Specialization(guards = { "isRubySymbol(level)", "isRubyString(message)", "level == cachedLevel" })
@@ -232,7 +232,7 @@ public abstract class TruffleSystemNodes {
 
     }
 
-    @CoreMethod(names = "native_set_process_title", isModuleFunction = true, required = 1)
+    @CoreMethod(names = "native_set_process_title", onSingleton = true, required = 1)
     public abstract static class SetProcessTitleNode extends PrimitiveArrayArgumentsNode {
 
         @TruffleBoundary
