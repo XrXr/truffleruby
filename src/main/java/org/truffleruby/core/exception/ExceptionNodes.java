@@ -10,9 +10,9 @@
 package org.truffleruby.core.exception;
 
 import org.truffleruby.Layouts;
-import org.truffleruby.builtins.CoreModule;
 import org.truffleruby.builtins.CoreMethod;
 import org.truffleruby.builtins.CoreMethodArrayArgumentsNode;
+import org.truffleruby.builtins.CoreModule;
 import org.truffleruby.builtins.NonStandard;
 import org.truffleruby.builtins.Primitive;
 import org.truffleruby.builtins.PrimitiveArrayArgumentsNode;
@@ -132,6 +132,8 @@ public abstract class ExceptionNodes {
             Layouts.EXCEPTION.setFormatter(self, Layouts.EXCEPTION.getFormatter(from));
             Layouts.EXCEPTION.setMessage(self, Layouts.EXCEPTION.getMessage(from));
             Layouts.EXCEPTION.setCause(self, Layouts.EXCEPTION.getCause(from));
+            Layouts.EXCEPTION.setBacktraceStringArray(self, Layouts.EXCEPTION.getBacktraceStringArray(from));
+            Layouts.EXCEPTION.setBacktraceLocations(self, Layouts.EXCEPTION.getBacktraceLocations(from));
         }
 
     }

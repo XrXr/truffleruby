@@ -133,7 +133,7 @@ module Digest
     end
   end
 
-  class Class
+  class ::Digest::Class
     include Instance
 
     def self.digest(message, *parameters)
@@ -142,20 +142,12 @@ module Digest
       digest.digest
     end
 
-    def self.hexdigest(*parameters, message)
-      digest = new(*parameters)
-      digest.update message
-      digest.hexdigest
-    end
-
-    def self.base64digest(*parameters, message)
-      digest = new(*parameters)
-      digest.update message
-      digest.base64digest
+    def self.hexdigest(str, *args)
+      Digest.hexencode(digest(str, *args))
     end
   end
 
-  class Base < Class
+  class Base < ::Digest::Class
   end
 
   class MD5 < Base

@@ -19,7 +19,6 @@ import org.truffleruby.core.rope.RopeNodes;
 import org.truffleruby.core.string.StringCachingGuards;
 import org.truffleruby.core.string.StringOperations;
 import org.truffleruby.language.NotProvided;
-import org.truffleruby.language.RubyNode;
 import org.truffleruby.language.control.JavaException;
 import org.truffleruby.language.control.RaiseException;
 
@@ -38,7 +37,7 @@ import com.oracle.truffle.api.source.Source;
 @CoreModule("Polyglot")
 public abstract class PolyglotNodes {
 
-    @CoreMethod(names = "eval", isModuleFunction = true, required = 2)
+    @CoreMethod(names = "eval", onSingleton = true, required = 2)
     @ImportStatic({ StringCachingGuards.class, StringOperations.class })
     @ReportPolymorphism
     public abstract static class EvalNode extends CoreMethodArrayArgumentsNode {
@@ -58,13 +57,13 @@ public abstract class PolyglotNodes {
                 @Cached("create(parse(id, source))") DirectCallNode callNode,
                 @Cached RopeNodes.EqualNode idEqualNode,
                 @Cached RopeNodes.EqualNode sourceEqualNode) {
-            return callNode.call(RubyNode.EMPTY_ARGUMENTS);
+            return callNode.call(EMPTY_ARGUMENTS);
         }
 
         @Specialization(guards = { "isRubyString(id)", "isRubyString(source)" }, replaces = "evalCached")
         protected Object evalUncached(DynamicObject id, DynamicObject source,
                 @Cached IndirectCallNode callNode) {
-            return callNode.call(parse(id, source), RubyNode.EMPTY_ARGUMENTS);
+            return callNode.call(parse(id, source), EMPTY_ARGUMENTS);
         }
 
         @TruffleBoundary
@@ -87,7 +86,7 @@ public abstract class PolyglotNodes {
 
     @CoreMethod(
             names = "eval_file",
-            isModuleFunction = true,
+            onSingleton = true,
             required = 1,
             optional = 1,
             argumentNames = { "file_name_or_id", "file_name" })
