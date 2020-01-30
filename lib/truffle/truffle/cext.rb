@@ -1572,6 +1572,8 @@ module Truffle::CExt
     begin
       TrufflePrimitive.call_with_c_mutex(b_proc, [data1])
     rescue StandardError => e
+      # Allow rescues to be null, or else Graal will error.
+      return if Truffle::Interop.null?(r_proc) 
       TrufflePrimitive.call_with_c_mutex(r_proc, [data2, TrufflePrimitive.cext_wrap(e)])
     end
   end
