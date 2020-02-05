@@ -26,12 +26,9 @@ shared:
   truffle_run: &truffle_run
     timeout: 30m
     high_concurrency: true
-    cache:
-      - path: .shopify-build/build
-        required: true
-        inherited: false
-        upload: false
-        scope: "platform-${SHOPIFY_BUILD_PIPELINE_SLUG}"
+    import_artifacts:
+    - pattern: '*.tar.gz'
+      into: .shopify-build/artifacts
   language_specs: &language_specs
     <<: *truffle_run
     label: "Run Ruby language, command-line, and security specs"
@@ -142,21 +139,9 @@ shared:
     <<: *truffle_run
     label: Run zeitwerk tests
     run: .shopify-build/test-gem.sh zeitwerk
-
   storefront_renderer_test: &storefront_renderer_test
-    timeout: 30m
+    timeout: 60m
     high_concurrency: true
-    cache:
-      - path: .shopify-build/build
-        required: true
-        inherited: false
-        upload: false
-        scope: "platform-${SHOPIFY_BUILD_PIPELINE_SLUG}"
-      - path: storefront-renderer
-        required: true
-        inherited: false
-        upload: false
-        scope: "platform-${SHOPIFY_BUILD_PIPELINE_SLUG}"
     services:
       mysql: '5.7'
       memcached: 'alpine'
@@ -165,6 +150,9 @@ shared:
         command: redis-server
       toxiproxy:
         image: shopify/toxiproxy
+    import_artifacts:
+    - pattern: '*.tar.gz'
+      into: .shopify-build/artifacts
     env:
       TOXIPROXY_HOST: 'toxiproxy'
       REDIS_SERVER: redis:6379
@@ -188,10 +176,9 @@ pipelines:
         timeout: 90m
         git:
           history: shallow
-        cache:
-          - path: .shopify-build/build
-            inherited: false
-            scope: "platform-${SHOPIFY_BUILD_PIPELINE_SLUG}"
+        artifact_paths:
+          - path: .shopify-build/artifacts
+            required: true
         run: .shopify-build/build.sh
       - wait
       - <<: *language_specs
@@ -222,12 +209,6 @@ pipelines:
       - <<: *webauthn_ruby_test
       - <<: *zeitwerk_test
       - wait
-      - block: Produce a tarball artifact
-      - label: Package
-        <<: *truffle_run
-        run: .shopify-build/package.sh
-        artifact_paths:
-          - .shopify-build/artifacts
       - block: Make and upload Debian package to Package Cloud
       - label: "make and publish debian package out of build/"
         <<: *truffle_run
@@ -244,10 +225,9 @@ pipelines:
         timeout: 90m
         git:
           history: shallow
-        cache:
-          - path: .shopify-build/build
-            inherited: false
-            scope: "platform-${SHOPIFY_BUILD_PIPELINE_SLUG}"
+        artifact_paths:
+          - path: .shopify-build/artifacts
+            required: true
         run: .shopify-build/build.sh
       - wait
       - <<: *language_specs
@@ -277,22 +257,13 @@ pipelines:
       - <<: *protobuf_test
       - <<: *webauthn_ruby_test
       - <<: *zeitwerk_test
-      - block: Produce a tarball artifact
-      - label: Package
-        <<: *truffle_run
-        run: .shopify-build/package.sh
-        artifact_paths:
-          - .shopify-build/artifacts
       - block: Release to dev
       - label: Upload to S3 and send PR to Shopify/dev
         timeout: 30m
         container: upload
-        cache:
-          - path: .shopify-build/build
-            required: true
-            inherited: false
-            upload: false
-            scope: "platform-${SHOPIFY_BUILD_PIPELINE_SLUG}"
+        import_artifacts:
+        - pattern: '*.tar.gz'
+          into: .shopify-build/artifacts
         run:
           - .shopify-build/prepare-package.sh
           - git clone git@github.com:Shopify/ruby-builder.git
@@ -311,36 +282,10 @@ pipelines:
         timeout: 90m
         git:
           history: shallow
-        cache:
-          - path: .shopify-build/build
-            inherited: false
-            scope: "platform-${SHOPIFY_BUILD_PIPELINE_SLUG}"
-        run: .shopify-build/build.sh
-      - wait
-      - label: Install storefront_renderer
-        timeout: 30m
-        high_concurrency: true
-        services:
-          mysql: '5.7'
-          memcached: 'alpine'
-          redis:
-            image: redis:alpine
-            command: redis-server
-          toxiproxy:
-            image: shopify/toxiproxy
-        env:
-          TOXIPROXY_HOST: 'toxiproxy'
-          REDIS_SERVER: redis:6379
-        cache:
-          - path: .shopify-build/build
+        artifact_paths:
+          - path: .shopify-build/artifacts
             required: true
-            inherited: false
-            upload: false
-            scope: "platform-${SHOPIFY_BUILD_PIPELINE_SLUG}"
-          - path: storefront-renderer
-            inherited: false
-            scope: "platform-${SHOPIFY_BUILD_PIPELINE_SLUG}"
-        run: .shopify-build/test-gem.sh storefront-renderer-install
+        run: .shopify-build/build.sh
       - wait
       - label: Run storefront_renderer test:unit
         <<: *storefront_renderer_test

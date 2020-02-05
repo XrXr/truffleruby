@@ -1,20 +1,9 @@
 diff --git a/money.gemspec b/money.gemspec
 index 3f2d945..ac16f6b 100644
---- a/money.gemspec
-+++ b/money.gemspec
-@@ -18,7 +18,6 @@ Gem::Specification.new do |s|
-   s.add_development_dependency("rspec", "~> 3.2")
-   s.add_development_dependency("database_cleaner", "~> 1.6")
-   s.add_development_dependency("sqlite3", "~> 1.3.6")
--  s.add_development_dependency("bigdecimal", "~> 1.4.4")
- 
-   s.files = `git ls-files`.split($/)
-   s.executables   = s.files.grep(%r{^bin/}) { |f| File.basename(f) }
-diff --git a/spec/spec_helper.rb b/spec/spec_helper.rb
-index 6402e24..0cca1f0 100644
 --- a/spec/spec_helper.rb
 +++ b/spec/spec_helper.rb
 @@ -1,5 +1,4 @@
+ # frozen_string_literal: true
  require 'simplecov'
 -SimpleCov.minimum_coverage 100
  SimpleCov.start do
