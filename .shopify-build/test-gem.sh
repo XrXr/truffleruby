@@ -8,9 +8,7 @@ else
   source .shopify-build/setup-linux.sh
 fi
 
-unset GEM_HOME GEM_PATH GEM_ROOT RUBY_ENGINE RUBY_ROOT RUBY_VERSION
-PATH=$PWD/.shopify-build/build/bin:$PATH
-ruby --version
+source .shopify-build/use-truffleruby.sh
 
 gem=${1}
 script_path="$PWD/.shopify-build/gems/$gem.sh"
