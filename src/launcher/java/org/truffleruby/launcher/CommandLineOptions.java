@@ -28,6 +28,7 @@
  ***** END LICENSE BLOCK *****/
 package org.truffleruby.launcher;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -54,13 +55,14 @@ public class CommandLineOptions {
     /** A thing to be executed: a file, inline script, etc. Used by executionAction when applicable. */
     String toExecute = "";
 
-    /** This should not be modified, as otherwise when exec()-ing to JVM from a native launcher,
-     * these options would be passed on the command line, which fails if they are experimental.
-     * This would also cause parsing the options twice with the current Launcher design. */
+    /** This should not be modified, as otherwise when exec()-ing to JVM from a native launcher, these options would be
+     * passed on the command line, which fails if they are experimental. This would also cause parsing the options twice
+     * with the current Launcher design. */
     private final Map<String, String> polyglotOptions;
     private final Map<String, String> options;
     private String[] arguments;
     private final List<String> unknownArguments;
+    private Boolean gemOrBundle = null;
 
     public CommandLineOptions(Map<String, String> polyglotOptions) {
         this.polyglotOptions = Collections.unmodifiableMap(polyglotOptions);
@@ -121,5 +123,38 @@ public class CommandLineOptions {
 
     public List<String> getUnknownArguments() {
         return unknownArguments;
+    }
+
+    /** Whether we are executing a gem or bundle command that would benefit from faster warmup and lower peak
+     * performance. False for 'bundle exec'. */
+    boolean isGemOrBundle() {
+        if (gemOrBundle == null) {
+            gemOrBundle = detectGemOrBundle();
+        }
+        return gemOrBundle;
+    }
+
+    private boolean detectGemOrBundle() {
+        String executable = new File(toExecute).getName();
+        if (executable.equals("gem")) {
+            // All gem commands seem fine with --engine.Mode=latency.
+            return true;
+        } else if (executable.equals("bundle") || executable.equals("bundler")) {
+            // Exclude 'bundle exec' and aliases as they should run with the default --engine.Mode.
+            // Other bundle commands seem fine with --engine.Mode=latency.
+            return !contains(arguments, "exec") && !contains(arguments, "exe") &&
+                    !contains(arguments, "ex") && !contains(arguments, "e");
+        } else {
+            return false;
+        }
+    }
+
+    private boolean contains(String[] array, String element) {
+        for (String e : array) {
+            if (e.equals(element)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

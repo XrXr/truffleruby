@@ -2,6 +2,7 @@
 
 New features:
 
+* `||=` will not compile the right-hand-side if it's only executed once, to match the idiomatic lazy-initialisation use-case (#1887, @kipply).
 
 Bug fixes:
 
@@ -14,12 +15,41 @@ Bug fixes:
 * Fixed `SystemCallError.new` parameter conversion.
 * Fixed `File#{chmod, umask}` argument conversion check.
 * Added warning in `Hash.[]` for non-array elements.
+* Fixed `File.lchmod` raises `NotImplementedError` when not available.
+* `RSTRING_PTR()` now always returns a native pointer, resolving two bugs `memcpy`ing to (#1822) and from (#1772) Ruby Strings.
+* Fixed issue with duping during splat (#1883).
+* Fixed `Dir#children` implementation.
+* Fixed `SignalException.new` error when bad parameter given.
+* Added deprecation warning to `Kernel#=~`.
+* Fixed `puts` for a foreign objects, e.g. `puts Polyglot.eval('js', '[]')` (#1881) 
+* Fixed `Exception#full_message` implementation.
+* Updated `Kernel.Complex()` to handle the `exception: false` parameter.
 
 Compatibility:
 
 * Implemented `Float#{floor, ceil}` with `ndigits` argument.
+* Implemented `Thread#fetch`.
+* Implemented `Float#truncate` with `ndigits` argument.
+* Made `String#{byteslice, slice, slice!}` and `Symbol#slice` compatible with endless ranges.
 
 * Implemented `-p` CLI option.
+* Implemented "instance variable not initialized" warning.
+* Implemented `-p` and `-a` CLI options.
+* Make `Kernel#{caller, caller_locations}` and `Thread#backtrace_locations` compatible with endless ranges.
+* Implemented `Dir#each_child`.
+* Implemented `Kernel.{chomp, chop}` and `Kernel#{chomp, chop}`.
+* Implemented `-p` and `-a`, and `-l` CLI options.
+* Convert the argument to `File.realpath` with `#to_path` (#1894).
+* `StringIO#binmode` now sets the external encoding to BINARY like MRI (#1898).
+* `StringIO#inspect` should not include the contents of the `StringIO` (#1898).
+
+Changes:
+
+* `TRUFFLERUBY_RESILIENT_GEM_HOME` has been removed. Unset `GEM_HOME` and `GEM_PATH` instead if you need to.
+
+Performance:
+
+* Optimized `RSTRING_PTR()` accesses by going to native directly, optimized various core methods, use Mode=latency and tune GC heap size for Bundler. This speeds up `bundle install` from 84s to 19s for a small Gemfile with 6 gems (#1398).
 
 # 20.0.0
 
@@ -28,6 +58,7 @@ New features:
 * Enable and document `--coverage` option (#1840, @chrisseaton).
 * Update the internal LLVM toolchain to LLVM 9 and reduce its download size.
 * Updated to Ruby 2.6.5 (#1749).
+* Automatically set `PKG_CONFIG_PATH` as needed for compiling OpenSSL on macOS (#1830).
 
 Bug fixes:
 
@@ -99,6 +130,8 @@ Bug fixes:
 * Fixed `IO.try_convert` parameter conversion.
 * Fixed linking of always-inline C API functions with `-std=gnu90` (#1837, #1879).
 * Avoid race conditions during `gem install` by using a single download thread.
+* Do not use gems precompiled for MRI on TruffleRuby (#1837).
+* Fixed printing foreign arrays that were also pointers (#1679).
 
 Compatibility:
 

@@ -115,7 +115,7 @@ public class LoadArgumentsTranslator extends Translator {
             boolean isProc,
             boolean isMethod,
             BodyTranslator methodBodyTranslator) {
-        super(currentNode, context, source, parserContext);
+        super(context, source, parserContext, currentNode);
         this.isProc = isProc;
         this.isMethod = isMethod;
         this.methodBodyTranslator = methodBodyTranslator;
@@ -294,8 +294,8 @@ public class LoadArgumentsTranslator extends Translator {
 
         final RubyNode defaultValue;
         if (asgnNode.getValueNode() instanceof RequiredKeywordArgumentValueParseNode) {
-            /* This isn't a true default value - it's a marker to say there isn't one. This actually makes sense;
-             * the semantic action of executing this node is to report an error, and we do the same thing. */
+            /* This isn't a true default value - it's a marker to say there isn't one. This actually makes sense; the
+             * semantic action of executing this node is to report an error, and we do the same thing. */
             defaultValue = new MissingKeywordArgumentNode(name);
         } else {
             defaultValue = translateNodeOrNil(sourceSection, asgnNode.getValueNode());

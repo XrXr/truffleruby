@@ -65,15 +65,15 @@ public class MethodTranslator extends BodyTranslator {
     private final boolean shouldLazyTranslate;
 
     public MethodTranslator(
-            Node currentNode,
             RubyContext context,
             BodyTranslator parent,
             TranslatorEnvironment environment,
             boolean isBlock,
             Source source,
             ParserContext parserContext,
+            Node currentNode,
             ArgsParseNode argsNode) {
-        super(currentNode, context, parent, environment, source, parserContext, false);
+        super(context, parent, environment, source, parserContext, currentNode);
         this.isBlock = isBlock;
         this.argsNode = argsNode;
 
@@ -92,12 +92,10 @@ public class MethodTranslator extends BodyTranslator {
         final Arity arity = argsNode.getArity();
         final Arity arityForCheck;
 
-        /*
-         * If you have a block with parameters |a,| Ruby checks the arity as if was minimum 1, maximum 1. That's
+        /* If you have a block with parameters |a,| Ruby checks the arity as if was minimum 1, maximum 1. That's
          * counter-intuitive - as you'd expect the anonymous rest argument to cause it to have no maximum. Indeed,
          * that's how JRuby reports it, and by the look of their failing spec they consider this to be correct. We'll
-         * follow the specs for now until we see a reason to do something else.
-         */
+         * follow the specs for now until we see a reason to do something else. */
 
         if (argsNode.getRestArgNode() instanceof UnnamedRestArgParseNode &&
                 !((UnnamedRestArgParseNode) argsNode.getRestArgNode()).isStar()) {
@@ -158,11 +156,7 @@ public class MethodTranslator extends BodyTranslator {
             preludeProc = loadArguments;
         }
 
-        final RubyNode checkArity = createCheckArityNode(arityForCheck);
-
-        final RubyNode preludeLambda = sequence(
-                sourceSection,
-                Arrays.asList(checkArity, NodeUtil.cloneNode(loadArguments)));
+        final RubyNode preludeLambda = createCheckArityNode(arityForCheck, NodeUtil.cloneNode(loadArguments));
 
         if (!translatingForStatement) {
             // Make sure to declare block-local variables
@@ -257,11 +251,8 @@ public class MethodTranslator extends BodyTranslator {
         return body;
     }
 
-    /*
-     * This method exists solely to be substituted to support lazy
-     * method parsing. The substitution returns a node which performs
-     * the parsing lazily and then calls doCompileMethodBody.
-     */
+    /* This method exists solely to be substituted to support lazy method parsing. The substitution returns a node which
+     * performs the parsing lazily and then calls doCompileMethodBody. */
     public RubyNode compileMethodBody(SourceIndexLength sourceSection, ParseNode bodyNode) {
         return doCompileMethodBody(sourceSection, bodyNode);
     }
@@ -284,10 +275,10 @@ public class MethodTranslator extends BodyTranslator {
 
         final SourceIndexLength bodySourceSection = body.getSourceIndexLength();
 
-        final RubyNode checkArity = createCheckArityNode(arity);
-        checkArity.unsafeSetSourceSection(sourceSection);
-
-        body = sequence(bodySourceSection, Arrays.asList(checkArity, loadArguments, body));
+        body = createCheckArityNode(
+                arity,
+                sequence(bodySourceSection, Arrays.asList(loadArguments, body)));
+        body.unsafeSetSourceSection(sourceSection);
 
         if (environment.getFlipFlopStates().size() > 0) {
             body = sequence(bodySourceSection, Arrays.asList(initFlipFlopStates(sourceSection), body));
@@ -386,10 +377,10 @@ public class MethodTranslator extends BodyTranslator {
         }
 
         final ReloadArgumentsTranslator reloadTranslator = new ReloadArgumentsTranslator(
-                currentNode,
                 context,
                 source,
                 parserContext,
+                currentNode,
                 this);
 
         final ArgsParseNode argsNode = methodArgumentsTranslator.argsNode;
@@ -423,13 +414,9 @@ public class MethodTranslator extends BodyTranslator {
         }
     }
 
-    /*
-     * The following methods allow us to save and restore enough of
-     * the current state of the Translator to allow lazy parsing. When
-     * the lazy parsing is actually performed, the state is restored
-     * to what it would have been if the method had been parsed
-     * eagerly.
-     */
+    /* The following methods allow us to save and restore enough of the current state of the Translator to allow lazy
+     * parsing. When the lazy parsing is actually performed, the state is restored to what it would have been if the
+     * method had been parsed eagerly. */
     public TranslatorState getCurrentState() {
         return new TranslatorState(
                 getEnvironment().unsafeGetLexicalScope(),

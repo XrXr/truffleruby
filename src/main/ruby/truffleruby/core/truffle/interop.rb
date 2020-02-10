@@ -51,7 +51,7 @@ module Truffle
         # TODO (pitr-ch 28-Nov-2019): make sure protected methods are not listed unless internal
         keys = []
         object.methods.each do |method|
-          keys << method.to_s if Truffle::Type.object_respond_to? object, method, true
+          keys << method.to_s if Primitive.object_respond_to? object, method, true
         end
         if internal
           object.instance_variables.each do |ivar|
@@ -60,7 +60,7 @@ module Truffle
           end
           object.private_methods.each do |method|
             # do not list methods which cannot be read using interop
-            keys << method.to_s if Truffle::Type.object_respond_to? object, method, true
+            keys << method.to_s if Primitive.object_respond_to? object, method, true
           end
         end
       end
@@ -231,8 +231,8 @@ module Truffle
     end
 
     def self.to_java_array(array)
-      java_array = TrufflePrimitive.interop_to_java_array(array)
-      if !TrufflePrimitive.undefined?(java_array)
+      java_array = Primitive.interop_to_java_array(array)
+      if !Primitive.undefined?(java_array)
         java_array
       else
         to_java_array(Truffle::Type.coerce_to(array, Array, :to_a))
@@ -240,8 +240,8 @@ module Truffle
     end
 
     def self.to_java_list(array)
-      list = TrufflePrimitive.interop_to_java_list(array)
-      if !TrufflePrimitive.undefined?(list)
+      list = Primitive.interop_to_java_list(array)
+      if !Primitive.undefined?(list)
         list
       else
         to_java_list(Truffle::Type.coerce_to(array, Array, :to_a))
@@ -274,7 +274,7 @@ module Truffle
         object.inspect
       elsif Truffle::Interop.java?(object)
         if object.nil?
-          +'#<Java null>'
+          '#<Java null>'
         elsif Truffle::Interop.java_class?(object)
           "#<Java class #{object.class.getName}>"
         elsif object.respond_to?(:size)
@@ -285,20 +285,27 @@ module Truffle
           "#<Java:#{hash_code} object #{object.getClass.getName}>"
         end
       else
-        if Truffle::Interop.null?(object)
-          +'#<Foreign null>'
-        elsif Truffle::Interop.pointer?(object)
-          "#<Foreign pointer 0x#{Truffle::Interop.as_pointer(object).to_s(16)}>"
-        elsif Truffle::Interop.size?(object)
-          "#<Foreign:#{hash_code} #{to_array(object).inspect}>"
-        elsif Truffle::Interop.executable?(object)
-          "#<Foreign:#{hash_code} proc>"
-        elsif Truffle::Interop.keys?(object)
-          "#<Foreign:#{hash_code} #{pairs_from_object(object).map { |k, v| "#{k.inspect}=#{v.inspect}" }.join(', ')}>"
+        return +'#<Foreign null>' if Truffle::Interop.null?(object)
+
+        string = +'#<Foreign'
+        if Truffle::Interop.pointer?(object)
+          string << " pointer 0x#{Truffle::Interop.as_pointer(object).to_s(16)}"
         else
-          "#<Foreign:#{hash_code}>"
+          string << ":#{hash_code}"
         end
+
+        if Truffle::Interop.size?(object)
+          string << " #{to_array(object).inspect}"
+        end
+        if Truffle::Interop.keys?(object)
+          string << " #{pairs_from_object(object).map { |k, v| "#{k.inspect}=#{v.inspect}" }.join(', ')}"
+        end
+        if Truffle::Interop.executable?(object)
+          string << ' proc'
+        end
+        string << '>'
       end
+
     end
 
     def self.foreign_class(receiver, *args)

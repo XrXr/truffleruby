@@ -936,9 +936,7 @@ public class CoreLibrary {
         }
     }
 
-    /**
-     * Convert a value to a {@code Float}, without doing any lookup.
-     */
+    /** Convert a value to a {@code Float}, without doing any lookup. */
     public static double toDouble(Object value, DynamicObject nil) {
         assert value != null;
 
@@ -1099,7 +1097,6 @@ public class CoreLibrary {
             "/core/truffle/string_operations.rb",
             "/core/truffle/backward.rb",
             "/core/truffle/truffleruby.rb",
-            "/core/truffle/truffle_primitive.rb",
             "/core/splitter.rb",
             "/core/stat.rb",
             "/core/io.rb",

@@ -30,8 +30,14 @@ There are three ways to install TruffleRuby:
   rvm:
     - truffleruby
   ```
+  And on GitHub Actions:
+  ```yaml
+  - uses: ruby/setup-ruby@v1
+    with:
+      ruby-version: truffleruby
+  ```
 
-You can use `gem` to install Gems as normal.
+You can use `gem` and `bundle` to install Gems as normal.
 
 Please report any issue you might find on [GitHub](https://github.com/oracle/truffleruby/issues).
 
@@ -44,51 +50,23 @@ TruffleRuby aims to:
 * Boot Ruby applications in less time
 * Execute C extensions in a managed environment
 * Add fast and low-overhead interoperability with languages like Java, JavaScript, Python and R
-* Provide new tooling such as debuggers and monitoring
+* Provide new tooling such as debuggers and monitoring that work across languages
 * All while maintaining very high compatibility with the standard implementation of Ruby
 
-## TruffleRuby configurations
+## TruffleRuby Configurations
 
-There are two main configurations of TruffleRuby: *native* and *JVM*. It's
-important to understand the different configurations of TruffleRuby, as each has
-different capabilities and performance characteristics. You should pick the
-execution mode that is appropriate for your application.
+There are two main configurations of TruffleRuby: *Native* and *JVM* which make different trade-offs.
 
-TruffleRuby by default runs in the *native* configuration. In this
-configuration, TruffleRuby is ahead-of-time compiled to a standalone native
-executable. This means that you don't need a JVM installed on your system to
-use it. The advantage of the native configuration is that it starts about as
-fast as MRI, it may use less memory, and it becomes fast in less time. The
-disadvantage of the native configuration is that you can't use Java tools like
-VisualVM, it is less convenient for Java interoperability, and *peak performance may be
-lower than on the JVM*. The native configuration is used by default, but you
-can also request it using `--native`. To use polyglot programming with the
-*native* configuration, you need to use the `--polyglot` flag. To check you
-are using the *native* configuration, `ruby --version` should mention
-`Native`.
+| Configuration: | Native (`--native`, default) | JVM (`--jvm`) |
+| ------------------ | ------------: | ------------: |
+| Time to start TruffleRuby | about as fast as MRI startup | slower |
+| Time to get to peak performance | faster | slower |
+| Peak performance (also considering GC) | good | best |
+| Java host interoperability | needs reflection configuration | just works |
 
-TruffleRuby can also be used in the *JVM* configuration, where it runs as a
-normal Java application on the JVM, as any other Java application would. The
-advantage of the JVM configuration is that you can use Java interoperability easily,
-and *peak performance may be higher than the native configuration*. The
-disadvantage of the JVM configuration is that it takes much longer to start and
-to get fast, and may use more memory. The JVM configuration is requested using
-`--jvm`. To check you are using the *JVM* configuration, `ruby --version` should
-not mention `Native`.
-
-If you are running a short-running program you probably want the default,
-*native*, configuration. If you are running a long-running program and want the
-highest possible performance you probably want the *JVM* configuration, by using
-`--jvm`.
-
-At runtime you can tell if you are using the native configuration using
-`TruffleRuby.native?`.
-
-You won't encounter it when using TruffleRuby from the GraalVM, but there is
-also another configuration which is TruffleRuby running on the JVM but with the
-GraalVM Compiler not available. This configuration will have much lower
-performance and should normally only be used for development. `ruby --version`
-will mention `Interpreter` for this configuration.
+To find out which configuration is used, run `ruby --version` on the command line
+or check the value of `RUBY_DESCRIPTION` or `TruffleRuby.native?` in Ruby code.
+Configurations are further detailed in [Deploying TruffleRuby](doc/user/deploying.md).
 
 ## System compatibility
 
@@ -99,7 +77,7 @@ TruffleRuby is actively tested on these systems:
 * Ubuntu 16.04 LTS
 * Fedora 28
 * macOS 10.14 (Mojave)
-* macOS 10.13 (High Sierra)
+* macOS 10.15 (Catalina)
 
 You may find that TruffleRuby will not work if you severely restrict the
 environment, for example by unmounting system filesystems such as `/dev/shm`.
@@ -139,7 +117,7 @@ should read our [migration guide](doc/user/jruby-migration.md).
 
 ## Documentation
 
-Extensive documentation is available in [`doc`](doc).
+Extensive user documentation is available in [`doc/user`](doc/user).
 
 See our [source code repository](https://github.com/oracle/truffleruby) and
 [contributor
@@ -167,33 +145,8 @@ Announcements about GraalVM, including TruffleRuby, are made on the
 ## Authors
 
 The main authors of TruffleRuby ordered by first contribution are:
-
-* Chris Seaton
-* Benoit Daloze
-* Kevin Menard
-* Petr Chalupa
-* Brandon Fish
-* Duncan MacGregor
-* Christian Wirth
-* Rafael França
-* Alan Wu
-
-Additionally:
-
-* Thomas Würthinger
-* Matthias Grimmer
-* Josef Haider
-* Fabio Niephaus
-* Matthias Springer
-* Lucas Allan Amorim
-* Aditya Bhardwaj
-
-Collaborations with:
-
-* [Institut für Systemsoftware at Johannes Kepler University
-   Linz](http://ssw.jku.at)
-
-And others.
+Chris Seaton, Benoit Daloze, Kevin Menard, Petr Chalupa, Brandon Fish, Duncan
+MacGregor, Christian Wirth, Rafael França, Alan Wu, Nicolas Laurent.
 
 ## Security
 
