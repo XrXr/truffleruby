@@ -24,6 +24,8 @@ Bug fixes:
 * Fixed `puts` for a foreign objects, e.g. `puts Polyglot.eval('js', '[]')` (#1881) 
 * Fixed `Exception#full_message` implementation.
 * Updated `Kernel.Complex()` to handle the `exception: false` parameter.
+* Fixed `Kernel#dup` to return self for `Complex` and `Rational` objects.
+* Updated `Kernel.Float()` to handle the `exception: false` parameter.
 
 Compatibility:
 
@@ -42,10 +44,13 @@ Compatibility:
 * Convert the argument to `File.realpath` with `#to_path` (#1894).
 * `StringIO#binmode` now sets the external encoding to BINARY like MRI (#1898).
 * `StringIO#inspect` should not include the contents of the `StringIO` (#1898).
+* Implemented `rb_fd_*` functions (#1623).
+* Fixed uninitialized variable warnings in core and lib (#1897).
 
 Changes:
 
 * `TRUFFLERUBY_RESILIENT_GEM_HOME` has been removed. Unset `GEM_HOME` and `GEM_PATH` instead if you need to.
+* Implemented `Enumerator::ArithmeticSequence`.
 
 Performance:
 
