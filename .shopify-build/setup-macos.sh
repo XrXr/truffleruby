@@ -20,6 +20,7 @@ brew install \
   libxslt \
   memcached \
   pkgconfig \
+  ragel \
   snappy \
   sqlite3 \
   mysql
