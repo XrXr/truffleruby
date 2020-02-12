@@ -199,7 +199,8 @@ public class CommandLineParser {
                 }
                 case 'a':
                     disallowedInRubyOpts(argument);
-                    throw notImplemented("-a");
+                    config.setOption(OptionsCatalog.SPLIT_LOOP, true);
+                    break;
                 case 'c':
                     disallowedInRubyOpts(argument);
                     config.setOption(OptionsCatalog.SYNTAX_CHECK, true);
@@ -302,7 +303,8 @@ public class CommandLineParser {
                     break;
                 case 'l':
                     disallowedInRubyOpts(argument);
-                    throw notImplemented("-l");
+                    config.setOption(OptionsCatalog.CHOMP_LOOP, true);
+                    break;
                 case 'n':
                     disallowedInRubyOpts(argument);
                     config.setOption(OptionsCatalog.GETS_LOOP, true);
@@ -509,12 +511,11 @@ public class CommandLineParser {
         throw new CommandLineException("missing argument for --" + label + "\n", true);
     }
 
-    /**
-     * Split string into (limited) sub-parts.
+    /** Split string into (limited) sub-parts.
+     * 
      * @param str the string
      * @param sep the separator
-     * @param lim has same effect as with {@link String#split(String, int)}
-     */
+     * @param lim has same effect as with {@link String#split(String, int)} */
     private static List<String> split(final String str, final char sep, final int lim) {
         final int len = str.length();
         if (len == 0) {

@@ -94,10 +94,10 @@ suite = {
             "load_path": ["src/main/ruby/truffleruby/core"],
             "test": ["spec", "test"],
             "excluded": [
-                "bench",
                 "dumps",
                 "logo",
                 "mxbuild",
+                "profiles",
                 ".ext",
                 "truffleruby-gem-test-pack",
                 "lib/json/java",

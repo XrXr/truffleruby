@@ -40,7 +40,8 @@ module Truffle
           if arg.equal? nil
             str = ''
           elsif arg.kind_of?(String)
-            str = arg
+            # might be a Foreign String we need to convert
+            str = arg.to_str
           elsif Thread.guarding? arg
             str = '[...]'
           elsif (ary = Truffle::Type.rb_check_convert_type(arg, Array, :to_ary))
@@ -50,7 +51,7 @@ module Truffle
             str = nil
           else
             str = arg.to_s
-            str = Truffle::Type.rb_any_to_s(arg) unless Truffle::Type.object_kind_of?(str, String)
+            str = Truffle::Type.rb_any_to_s(arg) unless Primitive.object_kind_of?(str, String)
           end
 
           if str
@@ -152,7 +153,7 @@ module Truffle
       end
 
       begin
-        primitive_result = TrufflePrimitive.thread_run_blocking_nfi_system_call -> do
+        primitive_result = Primitive.thread_run_blocking_nfi_system_call -> do
           Truffle::POSIX.truffleposix_select(readables.size, readables_pointer,
                                              writables.size, writables_pointer,
                                              errorables.size, errorables_pointer,

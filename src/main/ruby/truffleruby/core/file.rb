@@ -130,6 +130,11 @@ class File < IO
     end
   end
 
+  def self.absolute_path?(path)
+    path = Truffle::Type.coerce_to_path(path)
+    path.start_with?('/')
+  end
+
   ##
   # Returns the last access time for the named file as a Time object).
   #
@@ -152,9 +157,9 @@ class File < IO
 
     slash = '/'
 
-    ext_not_present = TrufflePrimitive.undefined?(ext)
+    ext_not_present = Primitive.undefined?(ext)
 
-    if pos = TrufflePrimitive.find_string_reverse(path, slash, path.bytesize)
+    if pos = Primitive.find_string_reverse(path, slash, path.bytesize)
       # special case. If the string ends with a /, ignore it.
       if pos == path.bytesize - 1
 
@@ -173,7 +178,7 @@ class File < IO
         return slash unless found
 
         # Now that we've trimmed the /'s at the end, search again
-        pos = TrufflePrimitive.find_string_reverse(path, slash, path.bytesize)
+        pos = Primitive.find_string_reverse(path, slash, path.bytesize)
         if ext_not_present and !pos
           # No /'s found and ext not present, return path.
           return path
@@ -190,10 +195,10 @@ class File < IO
     ext = StringValue(ext)
 
     if ext == '.*'
-      if pos = TrufflePrimitive.find_string_reverse(path, '.', path.bytesize)
+      if pos = Primitive.find_string_reverse(path, '.', path.bytesize)
         return path.byteslice(0, pos)
       end
-    elsif pos = TrufflePrimitive.find_string_reverse(path, ext, path.bytesize)
+    elsif pos = Primitive.find_string_reverse(path, ext, path.bytesize)
       # Check that ext is the last thing in the string
       if pos == path.bytesize - ext.size
         return path.byteslice(0, pos)
@@ -239,22 +244,28 @@ class File < IO
     paths.size
   end
 
-  ##
-  # Equivalent to File.chmod, but does not follow symbolic
-  # links (so it will change the permissions associated with
-  # the link, not the file referenced by the link).
-  # Often not available.
-  def self.lchmod(mode, *paths)
-    mode = Truffle::Type.coerce_to(mode, Integer, :to_int)
+  if Truffle::Platform.has_lchmod?
+    ##
+    # Equivalent to File.chmod, but does not follow symbolic
+    # links (so it will change the permissions associated with
+    # the link, not the file referenced by the link).
+    # Often not available.
+    def self.lchmod(mode, *paths)
+      mode = Truffle::Type.coerce_to(mode, Integer, :to_int)
 
-    paths.each do |path|
-      n = POSIX.lchmod Truffle::Type.coerce_to_path(path), mode
-      Errno.handle if n == -1
+      paths.each do |path|
+        n = POSIX.lchmod Truffle::Type.coerce_to_path(path), mode
+        Errno.handle if n == -1
+      end
+
+      paths.size
     end
-
-    paths.size
+  else
+    def self.lchmod(mode, *paths)
+      raise NotImplementedError, 'lchmod function is unimplemented on this machine'
+    end
+    Primitive.method_unimplement(method(:lchmod))
   end
-  TrufflePrimitive.method_unimplement(method(:lchmod)) unless Truffle::Platform.has_lchmod?
 
   ##
   # Changes the owner and group of the
@@ -407,7 +418,7 @@ class File < IO
     chunk_size = last_nonslash(path)
     return +'/' unless chunk_size
 
-    if pos = TrufflePrimitive.find_string_reverse(path, slash, chunk_size)
+    if pos = Primitive.find_string_reverse(path, slash, chunk_size)
       return +'/' if pos == 0
 
       path = path.byteslice(0, pos)
@@ -481,7 +492,7 @@ class File < IO
         raise ArgumentError, 'non-absolute home' unless home.start_with?('/')
       end
 
-      case path[1]
+      case first_char
       when ?/
         path = home + path.byteslice(1, path.bytesize - 1)
       when nil
@@ -491,13 +502,10 @@ class File < IO
 
         return home.dup
       else
-        unless length = TrufflePrimitive.find_string(path, '/', 1)
-          length = path.bytesize
-        end
-
+        length = Primitive.find_string(path, '/', 1) || path.bytesize
         name = path.byteslice 1, length - 1
 
-        if ptr = Truffle::POSIX.truffleposix_get_user_home(name)
+        if ptr = Truffle::POSIX.truffleposix_get_user_home(name) and !ptr.null?
           dir = ptr.read_string
           ptr.free
           raise ArgumentError, "user #{name} does not exist" if dir.empty?
@@ -519,9 +527,9 @@ class File < IO
 
     items = []
     start = 0
-    size = path.bytesize
+    bytesize = path.bytesize
 
-    while index = TrufflePrimitive.find_string(path, '/', start) or (start < size and index = size)
+    while index = Primitive.find_string(path, '/', start) or (start < bytesize and index = bytesize)
       length = index - start
 
       if length > 0
@@ -558,12 +566,12 @@ class File < IO
     path = Truffle::Type.coerce_to_path(path)
     path_size = path.bytesize
 
-    dot_idx = TrufflePrimitive.find_string_reverse(path, '.', path_size)
+    dot_idx = Primitive.find_string_reverse(path, '.', path_size)
 
     # No dots at all
     return '' unless dot_idx
 
-    slash_idx = TrufflePrimitive.find_string_reverse(path, '/', path_size)
+    slash_idx = Primitive.find_string_reverse(path, '/', path_size)
 
     # pretend there is / just to the left of the start of the string
     slash_idx ||= -1
@@ -726,10 +734,10 @@ class File < IO
 
     if (flags & FNM_EXTGLOB) != 0
       brace_match = braces(pattern, flags).any? do |p|
-        TrufflePrimitive.file_fnmatch p, path, flags
+        Primitive.file_fnmatch p, path, flags
       end
     end
-    brace_match || TrufflePrimitive.file_fnmatch(pattern, path, flags)
+    brace_match || Primitive.file_fnmatch(pattern, path, flags)
   end
 
   ##
@@ -838,9 +846,9 @@ class File < IO
         value = Truffle::Type.coerce_to_path(el)
       end
 
-      if value.start_with? sep
-        ret.gsub!(/#{SEPARATOR}+$/o, '')
-      elsif not ret.end_with? sep
+      if value.start_with?(sep)
+        ret.gsub!(/#{SEPARATOR}+\z/o, '') if ret.end_with?(sep)
+      elsif !ret.end_with?(sep)
         ret << sep
       end
 
@@ -926,7 +934,18 @@ class File < IO
   end
 
   def self.realpath(path, basedir = nil)
-    real = basic_realpath path, basedir
+    path = Truffle::Type.coerce_to_path(path)
+
+    unless absolute_path?(path)
+      path = expand_path(path, basedir)
+    end
+
+    buffer = Primitive.io_get_thread_buffer(Truffle::Platform::PATH_MAX)
+    if ptr = Truffle::POSIX.realpath(path, buffer) and !ptr.null?
+      real = ptr.read_string
+    else
+      Errno.handle(path)
+    end
 
     unless exist? real
       raise Errno::ENOENT, real
@@ -947,7 +966,7 @@ class File < IO
   end
 
   def self.basic_realpath(path, basedir = nil)
-    path = expand_path(path, basedir || Dir.pwd)
+    path = expand_path(path, basedir)
     real = ''
     symlinks = {}
 
@@ -1242,7 +1261,7 @@ class File < IO
         mode = nil
       end
 
-      if TrufflePrimitive.undefined?(options) and !TrufflePrimitive.undefined?(perm)
+      if Primitive.undefined?(options) and !Primitive.undefined?(perm)
         options = Truffle::Type.try_convert(perm, Hash, :to_hash)
         perm = undefined if options
       end
@@ -1250,7 +1269,7 @@ class File < IO
       nmode, _binary, _external, _internal = IO.normalize_options(mode, options)
       nmode ||= 'r'
 
-      perm = 0666 if TrufflePrimitive.undefined? perm
+      perm = 0666 if Primitive.undefined? perm
 
       fd = IO.sysopen(path, nmode, perm)
 

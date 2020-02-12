@@ -10,13 +10,15 @@
 package org.truffleruby.cext;
 
 import java.lang.ref.WeakReference;
-import java.util.HashSet;
+import java.util.Collections;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.truffleruby.RubyContext;
 import org.truffleruby.RubyLanguage;
 import org.truffleruby.cext.ValueWrapperManagerFactory.AllocateHandleNodeGen;
 import org.truffleruby.cext.ValueWrapperManagerFactory.GetHandleBlockHolderNodeGen;
+import org.truffleruby.core.array.ArrayUtils;
 import org.truffleruby.language.RubyBaseNode;
 import org.truffleruby.language.NotProvided;
 
@@ -35,9 +37,7 @@ public class ValueWrapperManager {
     static final long UNSET_HANDLE = -2L;
     static final HandleBlockAllocator allocator = new HandleBlockAllocator();
 
-    /*
-     * These constants are taken from ruby.h, and are based on us not tagging doubles.
-     */
+    /* These constants are taken from ruby.h, and are based on us not tagging doubles. */
 
     public static final int FALSE_HANDLE = 0b000;
     public static final int TRUE_HANDLE = 0b010;
@@ -87,10 +87,8 @@ public class ValueWrapperManager {
         return threadBlocks.get();
     }
 
-    /*
-     * We keep a map of long wrappers that have been generated because various C extensions assume
-     * that any given fixnum will translate to a given VALUE.
-     */
+    /* We keep a map of long wrappers that have been generated because various C extensions assume that any given fixnum
+     * will translate to a given VALUE. */
     public ValueWrapper longWrapper(long value) {
         return new ValueWrapper(value, UNSET_HANDLE, null);
     }
@@ -116,13 +114,10 @@ public class ValueWrapperManager {
 
     private Object[] ensureCapacity(Object[] map, int size) {
         if (size > map.length) {
-            Object[] newMap = new Object[size];
-            if (map.length > 0) {
-                System.arraycopy(map, 0, newMap, 0, size - 1);
-            }
-            map = newMap;
+            return ArrayUtils.grow(map, size);
+        } else {
+            return map;
         }
-        return map;
     }
 
     public synchronized Object getFromHandleMap(long handle) {
@@ -195,7 +190,7 @@ public class ValueWrapperManager {
 
         public static final HandleBlock DUMMY_BLOCK = new HandleBlock(null, 0, null);
 
-        private static final Set<HandleBlock> keepAlive = new HashSet<>();
+        private static final Set<HandleBlock> keepAlive = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
         private final long base;
         @SuppressWarnings("rawtypes") private final ValueWrapper[] wrappers;

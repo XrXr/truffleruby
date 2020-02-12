@@ -130,7 +130,7 @@ module Utilities
       raise unless /"name": "tools",.+?"version": "(\h{40})"/m =~ suite
       $1
     when :repository
-      raw_sh('git', 'rev-parse', 'HEAD', capture: true, no_print_cmd: true, chdir: GRAAL_DIR).chomp
+      raw_sh('git', 'rev-parse', 'HEAD', capture: :out, no_print_cmd: true, chdir: GRAAL_DIR).chomp
     else
       raise ArgumentError, from: from
     end
@@ -292,10 +292,8 @@ module Utilities
 
   def no_gem_vars_env
     {
-      'TRUFFLERUBY_RESILIENT_GEM_HOME' => nil,
       'GEM_HOME' => nil,
       'GEM_PATH' => nil,
-      'GEM_ROOT' => nil,
     }
   end
 
@@ -343,7 +341,7 @@ module Utilities
           sleep 1
           send_signal(:SIGKILL, pid)
         end
-        yield # Wait and read the pipe if capture: true
+        yield # Wait and read the pipe if :capture
         :timeout
       end
     end
@@ -370,10 +368,11 @@ module Utilities
     exec(*args) if use_exec
 
     if capture
-      raise ':capture can only be combined with :err => :out' if options.include?(:out)
+      capture_modes = [:out, :err, :both]
+      raise ":capture can only be one of #{capture_modes}" unless capture_modes.include?(capture)
       pipe_r, pipe_w = IO.pipe
-      options[:out] = pipe_w
-      options[:err] = pipe_w if options[:err] == :out
+      options[:out] = pipe_w if capture == :out || capture == :both
+      options[:err] = pipe_w if capture == :err || capture == :both
     end
 
     status = nil
@@ -422,9 +421,9 @@ module Utilities
       *args, _options = args
     end
 
+    raise 'use multiple arguments instead of a single string with spaces' if args[0].include?(' ')
     env = env.map { |k, v| "#{k}=#{shellescape(v)}" }
-    # do not shellscpape if the command is passed as one string
-    args = args.map { |a| shellescape(a) } if args.size > 1
+    args = args.map { |a| shellescape(a) }
 
     all = [*env, *args]
     size = all.reduce(0) { |s, v| s + v.size }
@@ -510,11 +509,21 @@ module Utilities
     end
   end
 
+  def git_clone(*args)
+    mx('sclone', '--kind', 'git', *args)
+  end
+
   def run_mspec(env_vars, command = 'run', *args)
     mspec_args = ['spec/mspec/bin/mspec', command, '--config', 'spec/truffle.mspec']
     Dir.chdir(TRUFFLERUBY_DIR) do
       ruby env_vars, *mspec_args, '-t', ruby_launcher, *args
     end
+  end
+
+  def args_split(args)
+    delimiter_index = args.index('--')
+    return [args, []] unless delimiter_index
+    [args[0...delimiter_index], args[(delimiter_index + 1)..-1]]
   end
 end
 
@@ -682,10 +691,7 @@ module Commands
 
   def env
     puts 'Environment'
-    env_vars = %w[JAVA_HOME JVMCI_HOME PATH RUBY_BIN
-                  TRUFFLERUBY_RESILIENT_GEM_HOME
-                  OPENSSL_PREFIX
-                  TRUFFLERUBYOPT RUBYOPT]
+    env_vars = %w[JAVA_HOME JVMCI_HOME PATH RUBY_BIN OPENSSL_PREFIX TRUFFLERUBYOPT RUBYOPT]
     column_size = env_vars.map(&:size).max
     env_vars.each do |e|
       puts format "%#{column_size}s: %s", e, ENV[e].inspect
@@ -879,9 +885,9 @@ module Commands
     def remote_urls(dir = TRUFFLERUBY_DIR)
       @remote_urls ||= Hash.new
       @remote_urls[dir] ||= begin
-        out = raw_sh 'git', '-C', dir, 'remote', capture: true, no_print_cmd: true
+        out = raw_sh 'git', '-C', dir, 'remote', capture: :out, no_print_cmd: true
         out.split.map do |remote|
-          url = raw_sh 'git', '-C', dir, 'config', '--get', "remote.#{remote}.url", capture: true, no_print_cmd: true
+          url = raw_sh 'git', '-C', dir, 'config', '--get', "remote.#{remote}.url", capture: :out, no_print_cmd: true
           [remote, url.chomp]
         end
       end
@@ -1025,7 +1031,6 @@ module Commands
       'EXCLUDES' => 'test/mri/excludes',
       'RUBYGEMS_TEST_PATH' => MRI_TEST_PREFIX,
       'RUBYOPT' => [*ENV['RUBYOPT'], '--disable-gems'].join(' '),
-      'TRUFFLERUBY_RESILIENT_GEM_HOME' => nil,
     }
     compile_env = {
       # MRI C-ext tests expect to be built with $extmk = true.
@@ -1354,15 +1359,14 @@ EOS
 
     options += %w[--format specdoc] if ci?
 
-    delimiter_index = args.index('--')
-    args, ruby_args = if delimiter_index
-                        [args[0...delimiter_index], args[(delimiter_index + 1)..-1]]
-                      else
-                        [args, []]
-                      end
+    args, ruby_args = args_split(args)
 
     vm_args, ruby_args, parsed_options = ruby_options({}, ['--reveal', *ruby_args])
-    vm_args += ['--vm.Xmx2G', *('--polyglot' unless truffleruby_native?)]
+    if truffleruby_native?
+      vm_args += ['--vm.Xmx4G'] # GR-20455
+    else
+      vm_args += ['--vm.Xmx2G', '--polyglot']
+    end
 
     raise "unsupported options #{parsed_options}" unless parsed_options.empty?
 
@@ -1385,7 +1389,7 @@ EOS
         abort 'Need a git remote in truffleruby with the internal repository URL'
       end
       url = Remotes.url(Remotes.bitbucket).sub('truffleruby', name)
-      sh 'git', 'clone', url
+      git_clone(url, gem_test_pack)
     end
 
     # Unset variable set by the pre-commit hook which confuses git
@@ -1491,7 +1495,7 @@ EOS
     samples = []
     METRICS_REPS.times do
       log '.', "sampling\n"
-      out = run_ruby '--vm.Dtruffleruby.metrics.memory_used_on_exit=true', '--vm.verbose:gc', *args, capture: true, :err => :out, no_print_cmd: true
+      out = run_ruby '--vm.Dtruffleruby.metrics.memory_used_on_exit=true', '--vm.verbose:gc', *args, capture: :both, no_print_cmd: true
       samples.push memory_allocated(out)
     end
     log "\n", nil
@@ -1578,11 +1582,11 @@ EOS
       log '.', "sampling\n"
 
       max_rss_in_mb = if ON_LINUX
-                        out = raw_sh('/usr/bin/time', '-v', '--', ruby_launcher, *args, capture: true, :err => :out, no_print_cmd: true)
+                        out = raw_sh('/usr/bin/time', '-v', '--', ruby_launcher, *args, capture: :both, no_print_cmd: true)
                         out =~ /Maximum resident set size \(kbytes\): (?<max_rss_in_kb>\d+)/m
                         Integer($~[:max_rss_in_kb]) / 1024.0
                       elsif ON_MAC
-                        out = raw_sh('/usr/bin/time', '-l', '--', ruby_launcher, *args, capture: true, :err => :out, no_print_cmd: true)
+                        out = raw_sh('/usr/bin/time', '-l', '--', ruby_launcher, *args, capture: :both, no_print_cmd: true)
                         out =~ /(?<max_rss_in_bytes>\d+)\s+maximum resident set size/m
                         Integer($~[:max_rss_in_bytes]) / 1024.0 / 1024.0
                       else
@@ -1620,7 +1624,7 @@ EOS
 
     use_json = args.delete '--json'
 
-    out = raw_sh('perf', 'stat', '-e', 'instructions', '--', ruby_launcher, *args, capture: true, :err => :out, no_print_cmd: true)
+    out = raw_sh('perf', 'stat', '-e', 'instructions', '--', ruby_launcher, *args, capture: :both, no_print_cmd: true)
 
     out =~ /(?<instruction_count>[\d,]+)\s+instructions/m
     instruction_count = $~[:instruction_count].gsub(',', '')
@@ -1642,11 +1646,13 @@ EOS
     metrics_time_option = '--vm.Dtruffleruby.metrics.time=true'
     verbose_gc_flag = truffleruby_native? ? '--vm.XX:+PrintGC' : '--vm.verbose:gc' unless use_json
     args = [metrics_time_option, *verbose_gc_flag, '--no-core-load-path', *args]
+    # JVM verbose:gc outputs on stdout, metrics outputs on stderr
+    capture = truffleruby_native? ? :err : :both
 
     samples = METRICS_REPS.times.map do
       log '.', "sampling\n"
       start = Time.now
-      out = run_ruby(*args, capture: true, no_print_cmd: true, :err => :out)
+      out = run_ruby(*args, no_print_cmd: true, capture: capture)
       finish = Time.now
       get_times(out, (finish - start) * 1000.0)
     end
@@ -1761,7 +1767,7 @@ EOS
 
   def benchmark(*args)
     vm_args = []
-    if truffleruby?
+    if truffleruby_compiler?
       vm_args << '--experimental-options' << '--engine.CompilationExceptionsAreFatal'
     end
     run_ruby(*vm_args, "#{TRUFFLERUBY_DIR}/bench/benchmark", *args, use_exec: true)
@@ -1775,15 +1781,20 @@ EOS
     repo = find_or_clone_repo('https://github.com/eregon/FlameGraph.git', 'graalvm')
     Dir.mkdir(PROFILES_DIR) unless Dir.exist?(PROFILES_DIR)
 
-    profile_data_file = "#{PROFILES_DIR}/truffleruby-profile.json"
+    time = Time.now.strftime('%Y%m%d-%H%M%S')
+    profile_data_file = "#{PROFILES_DIR}/truffleruby-profile-#{time}.json"
     flamegraph_data_file = "#{PROFILES_DIR}/truffleruby-flamegraph-data.stacks"
-    svg_filename = "#{PROFILES_DIR}/flamegraph_#{Time.now.strftime("%Y%m%d-%H%M%S")}.svg"
+    svg_filename = "#{PROFILES_DIR}/flamegraph_#{time}.svg"
 
     if stdin
       File.write(profile_data_file, STDIN.read)
     else
-      run_args = *DEFAULT_PROFILE_OPTIONS + args
-      run_ruby(env, *run_args, out: profile_data_file)
+      require 'benchmark'
+      FileUtils.rm_f(profile_data_file)
+      run_args = DEFAULT_PROFILE_OPTIONS + ["--cpusampler.OutputFile=#{profile_data_file}"] + args
+      puts Benchmark.measure {
+        run_ruby(env, *run_args)
+      }
     end
     raw_sh "#{repo}/stackcollapse-graalvm.rb", profile_data_file, out: flamegraph_data_file
     raw_sh "#{repo}/flamegraph.pl", flamegraph_data_file, out: svg_filename
@@ -1835,11 +1846,11 @@ EOS
     ee_path = File.expand_path '../graal-enterprise', TRUFFLERUBY_DIR
     unless File.directory?(ee_path)
       github_ee_url = 'https://github.com/graalvm/graal-enterprise.git'
-      bitbucket_ee_url = raw_sh('mx', 'urlrewrite', github_ee_url, capture: true).chomp
+      bitbucket_ee_url = raw_sh('mx', 'urlrewrite', github_ee_url, capture: :out).chomp
       if bitbucket_ee_url == github_ee_url
         raise "#{ee_path} is missing and could not be cloned using urlrewrite, clone the repository manually or setup the urlrewrite rules"
       end
-      raw_sh 'git', 'clone', bitbucket_ee_url, ee_path
+      git_clone(bitbucket_ee_url, ee_path)
     end
 
     raw_sh 'git', '-C', ee_path, 'fetch', 'origin'
@@ -1848,12 +1859,12 @@ EOS
     # Find the latest merge commit of a pull request in the graal repo, equal or older than our graal import.
     merge_commit_in_graal = raw_sh(
         'git', '-C', GRAAL_DIR, 'log', '--pretty=%H', '--grep=PullRequest:', '--merges', '--max-count=1', get_truffle_version,
-        capture: true).chomp
+        capture: :out).chomp
     # Find the commit importing that version of graal in graal-enterprise by looking at the suite file.
     # The suite file is automatically updated on every graal PR merged.
     graal_enterprise_commit = raw_sh(
         'git', '-C', ee_path, 'log', 'origin/master', '--pretty=%H', '--grep=PullRequest:', '--reverse', '-m',
-        '-S', merge_commit_in_graal, '--', suite_file, capture: true).lines.first.chomp
+        '-S', merge_commit_in_graal, '--', suite_file, capture: :out).lines.first.chomp
     raw_sh('git', '-C', ee_path, 'checkout', graal_enterprise_commit)
   end
 
@@ -1867,7 +1878,7 @@ EOS
     unless File.exist? destination
       puts "Building toolchain for: #{graal_version}"
       mx '-p', sulong_home, '--env', 'toolchain-only', 'build'
-      toolchain_graalvm = mx('-p', sulong_home, '--env', 'toolchain-only', 'graalvm-home', capture: true).lines.last.chomp
+      toolchain_graalvm = mx('-p', sulong_home, '--env', 'toolchain-only', 'graalvm-home', capture: :out).lines.last.chomp
       FileUtils.mkdir_p destination
       FileUtils.cp_r toolchain_graalvm + '/.', destination
     end
@@ -1915,19 +1926,14 @@ EOS
     ee_checkout = options.delete('--ee-checkout') || (options.delete('--no-ee-checkout') ? false : !ci?)
     checkout_enterprise_revision if env.include?('ee') && ee_checkout
 
-    delimiter_index = options.index '--'
-    mx_options, mx_build_options = if delimiter_index
-                                     [options[0...delimiter_index], options[(delimiter_index + 1)..-1]]
-                                   else
-                                     [options, nil]
-                                   end
+    mx_options, mx_build_options = args_split(options)
 
     mx_args = ['-p', TRUFFLERUBY_DIR, '--env', env, *mx_options]
 
     env = ENV['JT_CACHE_TOOLCHAIN'] ? { 'SULONG_BOOTSTRAP_GRAALVM' => bootstrap_toolchain } : {}
 
     mx(env, *mx_args, 'build', *mx_build_options)
-    build_dir = mx(*mx_args, 'graalvm-home', capture: true).lines.last.chomp
+    build_dir = mx(*mx_args, 'graalvm-home', capture: :out).lines.last.chomp
 
     dest = "#{TRUFFLERUBY_DIR}/mxbuild/#{name}"
     dest_ruby = "#{dest}/#{language_dir(build_dir)}/ruby"
@@ -2059,7 +2065,7 @@ EOS
 
   private def check_parser
     build('parser')
-    diff = sh 'git', 'diff', 'src/main/java/org/truffleruby/parser/parser/RubyParser.java', capture: true
+    diff = sh 'git', 'diff', 'src/main/java/org/truffleruby/parser/parser/RubyParser.java', capture: :out
     unless diff.empty?
       STDERR.puts 'DIFF:'
       STDERR.puts diff

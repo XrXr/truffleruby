@@ -183,21 +183,18 @@ public abstract class MutexNodes {
 
             MutexOperations.checkOwnedMutex(getContext(), lock, this, errorProfile);
 
-            /*
-             * Clear the wakeUp flag, following Ruby semantics:
-             * it should only be considered if we are inside the sleep when Thread#{run,wakeup} is called.
-             * Here we do it before unlocking for providing nice semantics for
-             * thread1: mutex.sleep
-             * thread2: mutex.synchronize { <ensured that thread1 is sleeping and thread1.wakeup will wake it up> }
-             */
+            /* Clear the wakeUp flag, following Ruby semantics: it should only be considered if we are inside the sleep
+             * when Thread#{run,wakeup} is called. Here we do it before unlocking for providing nice semantics for
+             * thread1: mutex.sleep thread2: mutex.synchronize { <ensured that thread1 is sleeping and thread1.wakeup
+             * will wake it up> } */
 
             Layouts.THREAD.getWakeUp(thread).set(false);
 
             MutexOperations.unlock(lock, thread);
             try {
-                return KernelNodes.SleepNode.sleepFor(this, getContext(), thread, durationInMillis);
+                return KernelNodes.SleepNode.sleepFor(getContext(), thread, durationInMillis, this);
             } finally {
-                MutexOperations.lockEvenWithExceptions(lock, thread, this);
+                MutexOperations.lockEvenWithExceptions(getContext(), lock, thread, this);
             }
         }
 

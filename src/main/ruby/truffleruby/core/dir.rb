@@ -43,7 +43,7 @@ class Dir
   def initialize(path, options=undefined)
     @path = Truffle::Type.coerce_to_path path
 
-    if TrufflePrimitive.undefined? options
+    if Primitive.undefined? options
       enc = nil
     else
       options = Truffle::Type.coerce_to options, Hash, :to_hash
@@ -132,10 +132,19 @@ class Dir
 
   def children
     ret = []
-    while s = dir.read
-      ret << false if s != '.' and s != '..'
+    while s = read
+      ret << s if s != '.' and s != '..'
     end
     ret
+  end
+
+  def each_child
+    return to_enum(:each_child) unless block_given?
+
+    while s = read
+      yield s unless s == '.' or s == '..'
+    end
+    self
   end
 
   def inspect
@@ -263,7 +272,7 @@ class Dir
     def glob_split(pattern)
       result = []
       start = 0
-      while idx = TrufflePrimitive.find_string(pattern, "\0", start)
+      while idx = Primitive.find_string(pattern, "\0", start)
         result << pattern.byteslice(start, idx)
         start = idx + 1
       end
@@ -288,19 +297,19 @@ class Dir
 
       if block_given?
         original_path = self.getwd
-        TrufflePrimitive.dir_set_truffle_working_directory(path)
+        Primitive.dir_set_truffle_working_directory(path)
         ret = Truffle::POSIX.chdir path
         Errno.handle(path) if ret != 0
 
         begin
           yield path
         ensure
-          TrufflePrimitive.dir_set_truffle_working_directory(original_path)
+          Primitive.dir_set_truffle_working_directory(original_path)
           ret = Truffle::POSIX.chdir original_path
           Errno.handle(original_path) if ret != 0
         end
       else
-        TrufflePrimitive.dir_set_truffle_working_directory(path)
+        Primitive.dir_set_truffle_working_directory(path)
         ret = Truffle::POSIX.chdir path
         Errno.handle path if ret != 0
         ret
@@ -322,12 +331,11 @@ class Dir
     alias_method :unlink, :rmdir
 
     def getwd
-      Truffle::FFI::MemoryPointer.new(Truffle::Platform::PATH_MAX) do |ptr|
-        wd = Truffle::POSIX.getcwd(ptr, Truffle::Platform::PATH_MAX)
-        Errno.handle unless wd
+      ptr = Primitive.io_get_thread_buffer(Truffle::Platform::PATH_MAX)
+      wd = Truffle::POSIX.getcwd(ptr, Truffle::Platform::PATH_MAX)
+      Errno.handle unless wd
 
-        Truffle::Type.external_string wd
-      end
+      Truffle::Type.external_string wd
     end
     alias_method :pwd, :getwd
 

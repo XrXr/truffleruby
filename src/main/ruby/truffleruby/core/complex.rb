@@ -40,11 +40,13 @@ class Complex < Numeric
                :div, :divmod, :floor, :ceil, :modulo, :remainder,
                :round, :step, :truncate, :i, :negative?, :positive?
 
-  def self.convert(real, imag = undefined)
+  def self.convert(real, imag = undefined, exception: true)
+    raise_exception = !exception.equal?(false)
     if nil.equal?(real) || nil.equal?(imag)
-      raise TypeError, 'cannot convert nil into Complex'
+      return nil unless raise_exception
+      raise TypeError, "can't convert nil into Complex"
     end
-    imag = nil if TrufflePrimitive.undefined?(imag)
+    imag = nil if Primitive.undefined?(imag)
 
     if check_real?(real) && check_real?(imag)
       return new(real, imag)
@@ -69,12 +71,21 @@ class Complex < Numeric
       if real.kind_of?(Numeric) && !real.real?
         return real
       elsif !real.kind_of?(Numeric)
-        return Truffle::Type.coerce_to(real, Complex, :to_c)
+        if raise_exception
+          return Truffle::Type.rb_convert_type(real, Complex, :to_c)
+        else
+          return Truffle::Type.rb_check_convert_type(real, Complex, :to_c)
+        end
       else
         imag = 0
       end
     elsif real.kind_of?(Numeric) && imag.kind_of?(Numeric) && (!real.real? || !imag.real?)
       return real + imag * Complex.new(0, 1)
+    end
+
+    if !imag.nil? && !raise_exception && !Primitive.object_kind_of?(imag, Integer) &&
+        !Primitive.object_kind_of?(imag, Float) && !Primitive.object_kind_of?(imag, Rational)
+      return nil
     end
 
     rect(real, imag)
@@ -328,10 +339,10 @@ class Complex < Numeric
   private_constant :CLASS_SALT
 
   def hash
-    val = TrufflePrimitive.vm_hash_start CLASS_SALT
-    val = TrufflePrimitive.vm_hash_update val, @real.hash
-    val = TrufflePrimitive.vm_hash_update val, @imag.hash
-    TrufflePrimitive.vm_hash_end val
+    val = Primitive.vm_hash_start CLASS_SALT
+    val = Primitive.vm_hash_update val, @real.hash
+    val = Primitive.vm_hash_update val, @imag.hash
+    Primitive.vm_hash_end val
   end
 
   def inspect

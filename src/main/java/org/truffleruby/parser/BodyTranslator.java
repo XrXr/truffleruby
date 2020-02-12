@@ -263,9 +263,7 @@ import com.oracle.truffle.api.object.DynamicObject;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
 
-/**
- * A JRuby parser node visitor which translates JRuby AST nodes into truffle Nodes.
- */
+/** A JRuby parser node visitor which translates JRuby AST nodes into truffle Nodes. */
 public class BodyTranslator extends Translator {
 
     protected final BodyTranslator parent;
@@ -277,14 +275,13 @@ public class BodyTranslator extends Translator {
     protected String currentCallMethodName = null;
 
     public BodyTranslator(
-            Node currentNode,
             RubyContext context,
             BodyTranslator parent,
             TranslatorEnvironment environment,
             Source source,
             ParserContext parserContext,
-            boolean topLevel) {
-        super(currentNode, context, source, parserContext);
+            Node currentNode) {
+        super(context, source, parserContext, currentNode);
         this.parserSupport = new ParserSupport(context, context.getPath(source), null);
         this.parent = parent;
         this.environment = environment;
@@ -510,7 +507,7 @@ public class BodyTranslator extends Translator {
         }
 
         if (receiver instanceof ConstParseNode &&
-                ((ConstParseNode) receiver).getName().equals("TrufflePrimitive")) {
+                ((ConstParseNode) receiver).getName().equals("Primitive") && canUsePrimitives()) {
             final RubyNode ret = translateInvokePrimitive(sourceSection, node);
             return addNewlineIfNeeded(node, ret);
         }
@@ -526,16 +523,18 @@ public class BodyTranslator extends Translator {
         return addNewlineIfNeeded(node, translated);
     }
 
+    private boolean canUsePrimitives() {
+        return inCore() || environment.getParseEnvironment().allowTruffleRubyPrimitives;
+    }
+
     private RubyNode translateInvokePrimitive(SourceIndexLength sourceSection, CallParseNode node) {
-        /*
-         * Translates something that looks like
+        /* Translates something that looks like
          *
-         *   TrufflePrimitive.foo arg1, arg2, argN
+         * Primitive.foo arg1, arg2, argN
          *
          * into
          *
-         *   InvokePrimitiveNode(FooNode(arg1, arg2, ..., argN))
-         */
+         * InvokePrimitiveNode(FooNode(arg1, arg2, ..., argN)) */
 
         final String primitiveName = node.getName();
 
@@ -735,10 +734,8 @@ public class BodyTranslator extends Translator {
 
         RubyNode elseNode = translateNodeOrNil(sourceSection, node.getElseNode());
 
-        /*
-         * There are two sorts of case - one compares a list of expressions against a value, the
-         * other just checks a list of expressions for truth.
-         */
+        /* There are two sorts of case - one compares a list of expressions against a value, the other just checks a
+         * list of expressions for truth. */
 
         final RubyNode ret;
 
@@ -749,10 +746,8 @@ public class BodyTranslator extends Translator {
             final ReadLocalNode readTemp = environment.findLocalVarNode(tempName, sourceSection);
             final RubyNode assignTemp = readTemp.makeWriteNode(node.getCaseNode().accept(this));
 
-            /*
-             * Build an if expression from the whens and else. Work backwards because the first if
-             * contains all the others in its else clause.
-             */
+            /* Build an if expression from the whens and else. Work backwards because the first if contains all the
+             * others in its else clause. */
 
             for (int n = node.getCases().size() - 1; n >= 0; n--) {
                 final WhenParseNode when = (WhenParseNode) node.getCases().get(n);
@@ -859,13 +854,12 @@ public class BodyTranslator extends Translator {
                     TranslatorEnvironment.newFrameDescriptor(context));
 
             final BodyTranslator moduleTranslator = new BodyTranslator(
-                    currentNode,
                     context,
                     this,
                     newEnvironment,
                     source,
                     parserContext,
-                    false);
+                    currentNode);
 
             final ModuleBodyDefinitionNode definition = moduleTranslator
                     .compileClassNode(sourceSection, name, bodyNode, sclass);
@@ -878,15 +872,13 @@ public class BodyTranslator extends Translator {
         }
     }
 
-    /**
-     * Translates module and class nodes.
+    /** Translates module and class nodes.
      * <p>
-     * In Ruby, a module or class definition is somewhat like a method. It has a local scope and a value
-     * for self, which is the module or class object that is being defined. Therefore for a module or
-     * class definition we translate into a special method. We run that method with self set to be the
-     * newly allocated module or class.
+     * In Ruby, a module or class definition is somewhat like a method. It has a local scope and a value for self, which
+     * is the module or class object that is being defined. Therefore for a module or class definition we translate into
+     * a special method. We run that method with self set to be the newly allocated module or class.
      * </p>
-     */
+    */
     private ModuleBodyDefinitionNode compileClassNode(SourceIndexLength sourceSection, String name, ParseNode bodyNode,
             boolean sclass) {
         RubyNode body = translateNodeOrNil(sourceSection, bodyNode);
@@ -1274,13 +1266,13 @@ public class BodyTranslator extends Translator {
         // ownScopeForAssignments is the same for the defined method as the current one.
 
         final MethodTranslator methodCompiler = new MethodTranslator(
-                currentNode,
                 context,
                 this,
                 newEnvironment,
                 false,
                 source,
                 parserContext,
+                currentNode,
                 argsNode);
         final RootCallTarget callTarget = methodCompiler.compileMethodNode(sourceSection, defNode, bodyNode);
 
@@ -1406,8 +1398,7 @@ public class BodyTranslator extends Translator {
 
     @Override
     public RubyNode visitForNode(ForParseNode node) {
-        /**
-         * A Ruby for-loop, such as:
+        /** A Ruby for-loop, such as:
          *
          * <pre>
          * for x in y
@@ -1425,8 +1416,8 @@ public class BodyTranslator extends Translator {
          * end
          * </pre>
          *
-         * The main difference is that z is always going to be local to the scope outside the block,
-         * so it's a bit more like:
+         * The main difference is that z is always going to be local to the scope outside the block, so it's a bit more
+         * like:
          *
          * <pre>
          * z = nil unless z is already defined
@@ -1436,10 +1427,9 @@ public class BodyTranslator extends Translator {
          * end
          * </pre>
          *
-         * Which forces z to be defined in the correct scope. The parser already correctly calls z a
-         * local, but then that causes us a problem as if we're going to translate to a block we
-         * need a formal parameter - not a local variable. My solution to this is to add a
-         * temporary:
+         * Which forces z to be defined in the correct scope. The parser already correctly calls z a local, but then
+         * that causes us a problem as if we're going to translate to a block we need a formal parameter - not a local
+         * variable. My solution to this is to add a temporary:
          *
          * <pre>
          * z = nil unless z is already defined
@@ -1450,8 +1440,8 @@ public class BodyTranslator extends Translator {
          * end
          * </pre>
          *
-         * We also need that temp because the expression assigned in the for could be index
-         * assignment, multiple assignment, or whatever:
+         * We also need that temp because the expression assigned in the for could be index assignment, multiple
+         * assignment, or whatever:
          *
          * <pre>
          * for x[0] in y
@@ -1463,24 +1453,19 @@ public class BodyTranslator extends Translator {
          * http://blog.grayproductions.net/articles/the_evils_of_the_for_loop
          * http://stackoverflow.com/questions/3294509/for-vs-each-in-ruby
          *
-         * The other complication is that normal locals should be defined in the enclosing scope,
-         * unlike a normal block. We do that by setting a flag on this translator object when we
-         * visit the new iter, translatingForStatement, which we recognise when visiting an iter
-         * node.
+         * The other complication is that normal locals should be defined in the enclosing scope, unlike a normal block.
+         * We do that by setting a flag on this translator object when we visit the new iter, translatingForStatement,
+         * which we recognise when visiting an iter node.
          *
-         * Finally, note that JRuby's terminology is strange here. Normally 'iter' is a different
-         * term for a block. Here, JRuby calls the object being iterated over the 'iter'.
-         */
+         * Finally, note that JRuby's terminology is strange here. Normally 'iter' is a different term for a block.
+         * Here, JRuby calls the object being iterated over the 'iter'. */
 
         final String temp = environment.allocateLocalTemp("for");
 
         final ParseNode receiver = node.getIterNode();
 
-        /*
-         * The x in for x in ... is like the nodes in multiple assignment - it has a dummy RHS which
-         * we need to replace with our temp. Just like in multiple assignment this is really awkward
-         * with the JRuby AST.
-         */
+        /* The x in for x in ... is like the nodes in multiple assignment - it has a dummy RHS which we need to replace
+         * with our temp. Just like in multiple assignment this is really awkward with the JRuby AST. */
 
         final LocalVarParseNode readTemp = new LocalVarParseNode(node.getPosition(), 0, temp);
         final ParseNode forVar = node.getVarNode();
@@ -1710,7 +1695,7 @@ public class BodyTranslator extends Translator {
         // About every case will use a SelfParseNode, just don't it use more than once.
         final SelfNode self = new SelfNode(environment.getFrameDescriptor());
 
-        final RubyNode ret = new ReadInstanceVariableNode(name, self);
+        final RubyNode ret = new ReadInstanceVariableNode(name, self, true);
         ret.unsafeSetSourceSection(sourceSection);
         return addNewlineIfNeeded(node, ret);
     }
@@ -1769,13 +1754,13 @@ public class BodyTranslator extends Translator {
                 parseEnvironment.allocateBreakID(),
                 TranslatorEnvironment.newFrameDescriptor(context));
         final MethodTranslator methodCompiler = new MethodTranslator(
-                currentNode,
                 context,
                 this,
                 newEnvironment,
                 true,
                 source,
                 parserContext,
+                currentNode,
                 argsNode);
 
         if (isProc) {
@@ -1852,16 +1837,11 @@ public class BodyTranslator extends Translator {
         RubyNode readNode = environment.findLocalVarNode(name, sourceSection);
 
         if (readNode == null) {
-            /*
-
-              This happens for code such as:
-
-                def destructure4r((*c,d))
-                    [c,d]
-                end
-
-               We're going to just assume that it should be there and add it...
-             */
+            /* This happens for code such as:
+             * 
+             * def destructure4r((*c,d)) [c,d] end
+             * 
+             * We're going to just assume that it should be there and add it... */
 
             environment.declareVar(name);
             readNode = environment.findLocalVarNode(name, sourceSection);
@@ -1993,8 +1973,7 @@ public class BodyTranslator extends Translator {
         if (preArray != null && node.getPost() == null && node.getRest() == null &&
                 rhsTranslated instanceof ArrayLiteralNode &&
                 ((ArrayLiteralNode) rhsTranslated).getSize() == preArray.size()) {
-            /*
-             * We can deal with this common case be rewriting
+            /* We can deal with this common case be rewriting
              *
              * a, b = c, d
              *
@@ -2008,9 +1987,8 @@ public class BodyTranslator extends Translator {
              *
              * As we don't know if d depends on the original value of a.
              *
-             * We also need to return an array [c, d], but we make that result elidable so it isn't
-             * executed if it isn't actually demanded.
-             */
+             * We also need to return an array [c, d], but we make that result elidable so it isn't executed if it isn't
+             * actually demanded. */
 
             final ArrayLiteralNode rhsArrayLiteral = (ArrayLiteralNode) rhsTranslated;
             final int assignedValuesCount = preArray.size();
@@ -2039,8 +2017,7 @@ public class BodyTranslator extends Translator {
             arrayNode.unsafeSetSourceSection(sourceSection);
             result = new ElidableResultNode(blockNode, arrayNode);
         } else if (preArray != null) {
-            /*
-             * The other simple case is
+            /* The other simple case is
              *
              * a, b, c = x
              *
@@ -2058,14 +2035,11 @@ public class BodyTranslator extends Translator {
              *
              * So we insert the splat cast node, even though it isn't there.
              *
-             * In either case, we return the RHS
-             */
+             * In either case, we return the RHS */
 
             final List<RubyNode> sequence = new ArrayList<>();
 
-            /*
-             * Store the RHS in a temp.
-             */
+            /* Store the RHS in a temp. */
 
             final String tempRHSName = environment.allocateLocalTemp("rhs");
             final RubyNode writeTempRHS = environment
@@ -2073,16 +2047,11 @@ public class BodyTranslator extends Translator {
                     .makeWriteNode(rhsTranslated);
             sequence.add(writeTempRHS);
 
-            /*
-             * Create a temp for the array.
-             */
+            /* Create a temp for the array. */
 
             final String tempName = environment.allocateLocalTemp("array");
 
-            /*
-             * Create a sequence of instructions, with the first being the literal array assigned to
-             * the temp.
-             */
+            /* Create a sequence of instructions, with the first being the literal array assigned to the temp. */
 
             final RubyNode splatCastNode = SplatCastNodeGen.create(
                     translatingNextExpression
@@ -2098,9 +2067,7 @@ public class BodyTranslator extends Translator {
 
             sequence.add(writeTemp);
 
-            /*
-             * Then index the temp array for each assignment on the LHS.
-             */
+            /* Then index the temp array for each assignment on the LHS. */
 
             for (int n = 0; n < preArray.size(); n++) {
                 final RubyNode assignedValue = PrimitiveArrayNodeFactory
@@ -2159,13 +2126,11 @@ public class BodyTranslator extends Translator {
             result = rhsTranslated;
         } else if (node.getPre() == null && node.getPost() == null && node.getRest() != null && rhs != null &&
                 !(rhs instanceof ArrayParseNode)) {
-            /*
-             * *a = b
+            /* *a = b
              *
              * >= 1.8, this seems to be the same as:
              *
-             * a = *b
-             */
+             * a = *b */
 
             final List<RubyNode> sequence = new ArrayList<>();
 
@@ -2218,20 +2183,16 @@ public class BodyTranslator extends Translator {
             result = new ElidableResultNode(sequence(sourceSection, sequence), assignmentResult);
         } else if (node.getPre() == null && node.getPost() == null && node.getRest() != null && rhs != null &&
                 rhs instanceof ArrayParseNode) {
-            /*
-             * *a = [b, c]
+            /* *a = [b, c]
              *
              * This seems to be the same as:
              *
-             * a = [b, c]
-             */
+             * a = [b, c] */
             result = translateDummyAssignment(node.getRest(), rhsTranslated);
         } else if (node.getPre() == null && node.getRest() != null && node.getPost() != null) {
-            /*
-             * Something like
+            /* Something like
              *
-             *     *a,b = [1, 2, 3, 4]
-             */
+             * *a,b = [1, 2, 3, 4] */
 
             // This is very similar to the case with pre and rest, so unify with that
 
@@ -2243,16 +2204,11 @@ public class BodyTranslator extends Translator {
                     .makeWriteNode(rhsTranslated);
             sequence.add(writeTempRHS);
 
-            /*
-             * Create a temp for the array.
-             */
+            /* Create a temp for the array. */
 
             final String tempName = environment.allocateLocalTemp("array");
 
-            /*
-             * Create a sequence of instructions, with the first being the literal array assigned to
-             * the temp.
-             */
+            /* Create a sequence of instructions, with the first being the literal array assigned to the temp. */
 
 
             final RubyNode splatCastNode = SplatCastNodeGen.create(
@@ -2269,9 +2225,7 @@ public class BodyTranslator extends Translator {
 
             sequence.add(writeTemp);
 
-            /*
-             * Then index the temp array for each assignment on the LHS.
-             */
+            /* Then index the temp array for each assignment on the LHS. */
 
             if (node.getRest() != null) {
                 final ArrayDropTailNode assignedValue = ArrayDropTailNodeGen
@@ -2386,11 +2340,9 @@ public class BodyTranslator extends Translator {
     }
 
     private RubyNode translateOpAsgnAndNode(ParseNode node, RubyNode lhs, RubyNode rhs) {
-        /*
-         * This doesn't translate as you might expect!
+        /* This doesn't translate as you might expect!
          *
-         * http://www.rubyinside.com/what-rubys-double-pipe-or-equals-really-does-5488.html
-         */
+         * http://www.rubyinside.com/what-rubys-double-pipe-or-equals-really-does-5488.html */
 
         final SourceIndexLength sourceSection = node.getPosition();
 
@@ -2482,12 +2434,10 @@ public class BodyTranslator extends Translator {
             return addNewlineIfNeeded(node, ret);
         }
 
-        /*
-         * We're going to de-sugar a.foo += c into a.foo = a.foo + c. Note that we can't evaluate a
-         * more than once, so we put it into a temporary, and we're doing something more like:
+        /* We're going to de-sugar a.foo += c into a.foo = a.foo + c. Note that we can't evaluate a more than once, so
+         * we put it into a temporary, and we're doing something more like:
          *
-         * temp = a; temp.foo = temp.foo + c
-         */
+         * temp = a; temp.foo = temp.foo + c */
 
         final String temp = environment.allocateLocalTemp("opassign");
         final ParseNode writeReceiverToTemp = new LocalAsgnParseNode(pos, temp, 0, node.getReceiverNode());
@@ -2534,7 +2484,9 @@ public class BodyTranslator extends Translator {
         RubyNode rhs = node.getSecondNode().accept(this);
 
         // This is needed for class variables. Constants are handled separately in visitOpAsgnConstDeclNode.
-        if (node.getFirstNode().needsDefinitionCheck() && !(node.getFirstNode() instanceof InstVarParseNode)) {
+        // It is also needed for instance variables to prevent attempted read which may trigger "not initialized"
+        // warnings unintentionally.
+        if (node.getFirstNode().needsDefinitionCheck()) {
             RubyNode defined = new DefinedNode(lhs);
             lhs = new AndNode(defined, lhs);
         }
@@ -2543,11 +2495,9 @@ public class BodyTranslator extends Translator {
     }
 
     private RubyNode translateOpAsgOrNode(ParseNode node, RubyNode lhs, RubyNode rhs) {
-        /*
-         * This doesn't translate as you might expect!
+        /* This doesn't translate as you might expect!
          *
-         * http://www.rubyinside.com/what-rubys-double-pipe-or-equals-really-does-5488.html
-         */
+         * http://www.rubyinside.com/what-rubys-double-pipe-or-equals-really-does-5488.html */
 
         final SourceIndexLength sourceSection = node.getPosition();
 
@@ -2560,10 +2510,7 @@ public class BodyTranslator extends Translator {
 
     @Override
     public RubyNode visitOpElementAsgnNode(OpElementAsgnParseNode node) {
-        /*
-         * We're going to de-sugar a[b] += c into a[b] = a[b] + c. See discussion in
-         * visitOpAsgnNode.
-         */
+        /* We're going to de-sugar a[b] += c into a[b] = a[b] + c. See discussion in visitOpAsgnNode. */
 
         final String tempName = environment.allocateLocalTemp("opelementassign");
 
@@ -2780,7 +2727,7 @@ public class BodyTranslator extends Translator {
         final Rope rope = node.getValue();
         final RegexpOptions options = node.getOptions();
         options.setLiteral(true);
-        Regex regex = TruffleRegexpNodes.compile(currentNode, context, rope, options);
+        Regex regex = TruffleRegexpNodes.compile(context, rope, options, currentNode);
 
         // The RegexpNodes.compile operation may modify the encoding of the source rope. This modified copy is stored
         // in the Regex object as the "user object". Since ropes are immutable, we need to take this updated copy when

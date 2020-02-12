@@ -45,12 +45,12 @@ class Range
       end
     end
 
-    TrufflePrimitive.range_initialize self, first, last, exclude_end
+    Primitive.range_initialize self, first, last, exclude_end
   end
   private :initialize
 
   private def endless?
-    self.end.equal?(nil)
+    self.end.nil?
   end
 
   def ==(other)
@@ -80,7 +80,7 @@ class Range
     if Float === start || Float === stop
       bsearch_float(&block)
     elsif Integer === start
-      if stop.equal?(nil)
+      if stop.nil?
         bsearch_endless(&block)
       elsif Integer === stop
         bsearch_integer(&block)
@@ -175,7 +175,7 @@ class Range
 
     # At the end of the loop, mid could be equal to min or max due to precision limits and the other bound
     # might not have been tested in some cases.
-    if mid == min && max == normalized_end && (last_admissible.equal?(nil) || last_admissible == Float::INFINITY)
+    if mid == min && max == normalized_end && (last_admissible.nil? || last_admissible == Float::INFINITY)
       # max is untested only if it's the end of the range.
       # It can only change the result of the search if we haven't found an admissible value yet (+ infinity edge case).
       result = yield max
@@ -254,7 +254,7 @@ class Range
       raise TypeError, "can't iterate from #{first.class}"
     end
 
-    return each_endless(first, &block) if last.equal?(nil)
+    return each_endless(first, &block) if last.nil?
 
     case first
     when Integer
@@ -309,7 +309,7 @@ class Range
   end
 
   def first(n=undefined)
-    return self.begin if TrufflePrimitive.undefined? n
+    return self.begin if Primitive.undefined? n
 
     super
   end
@@ -323,11 +323,11 @@ class Range
   private_constant :CLASS_SALT
 
   def hash
-    val = TrufflePrimitive.vm_hash_start(CLASS_SALT)
-    val = TrufflePrimitive.vm_hash_update(val, exclude_end? ? 1 : 0)
-    val = TrufflePrimitive.vm_hash_update(val, self.begin.hash)
-    val = TrufflePrimitive.vm_hash_update(val, self.end.hash)
-    TrufflePrimitive.vm_hash_end(val)
+    val = Primitive.vm_hash_start(CLASS_SALT)
+    val = Primitive.vm_hash_update(val, exclude_end? ? 1 : 0)
+    val = Primitive.vm_hash_update(val, self.begin.hash)
+    val = Primitive.vm_hash_update(val, self.end.hash)
+    Primitive.vm_hash_end(val)
   end
 
   def include?(value)
@@ -349,12 +349,12 @@ class Range
 
   def inspect
     result = "#{self.begin.inspect}#{exclude_end? ? "..." : ".."}#{endless? ? "" : self.end.inspect}"
-    Truffle::Type.infect(result, self)
+    Primitive.infect(result, self)
   end
 
   def last(n=undefined)
     raise RangeError, 'cannot get the last element of endless range' if endless?
-    return self.end if TrufflePrimitive.undefined? n
+    return self.end if Primitive.undefined? n
 
     to_a.last(n)
   end
@@ -384,6 +384,11 @@ class Range
   end
 
   private def step_internal(step_size=1, &block) # :yields: object
+
+    if !block_given? && Primitive.object_kind_of?(self.begin, Numeric) && (self.end.nil? || Primitive.object_kind_of?(self.end, Numeric))
+      return Enumerator::ArithmeticSequence.new(self, :step, self.begin, self.end, step_size, self.exclude_end?)
+    end
+
     return to_enum(:step, step_size) do
       validated_step_args = Truffle::RangeOperations.validate_step_size(self.begin, self.end, step_size)
       Truffle::RangeOperations.step_iterations_size(self, *validated_step_args)
@@ -394,7 +399,7 @@ class Range
     last = values[1]
     step_size = values[2]
 
-    return step_endless(first, step_size, &block) if last.equal?(nil)
+    return step_endless(first, step_size, &block) if last.nil?
 
     case first
     when Float
@@ -444,7 +449,7 @@ class Range
 
   def to_s
     result = "#{self.begin}#{exclude_end? ? "..." : ".."}#{endless? ? "" : self.end}"
-    Truffle::Type.infect(result, self)
+    Primitive.infect(result, self)
   end
 
   def cover?(value)
@@ -488,8 +493,8 @@ class Range
   end
 
   def collect(&block)
-    ary = TrufflePrimitive.range_integer_map(self, block)
-    if !TrufflePrimitive.undefined?(ary)
+    ary = Primitive.range_integer_map(self, block)
+    if !Primitive.undefined?(ary)
       ary
     else
       super(&block)
@@ -520,11 +525,11 @@ class Range
   private def to_a_from_enumerable(*arg)
     ary = []
     each(*arg) do
-      o = TrufflePrimitive.single_block_arg
+      o = Primitive.single_block_arg
       ary << o
       nil
     end
-    Truffle::Type.infect ary, self
+    Primitive.infect ary, self
     ary
   end
 end

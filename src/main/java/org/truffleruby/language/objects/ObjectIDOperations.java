@@ -17,18 +17,17 @@ import static org.truffleruby.cext.ValueWrapperManager.TRUE_HANDLE;
 
 import java.math.BigInteger;
 
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import org.truffleruby.Layouts;
 import org.truffleruby.RubyContext;
 import org.truffleruby.cext.ValueWrapperManager;
 import org.truffleruby.core.numeric.BignumOperations;
 import org.truffleruby.language.objects.shared.SharedObjects;
 
-import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.object.DynamicObject;
 import com.oracle.truffle.api.object.Property;
 
-/**
- * <pre>
+/** <pre>
  * Object IDs distribution
  *
  * We try to respect MRI scheme when it makes sense (Fixnum for the moment).
@@ -46,7 +45,7 @@ import com.oracle.truffle.api.object.Property;
  * ... 0001 | 64-bit long = Fixnum if value < -2^62 or value >= 2^62
  * ... 0010 | 64-bit raw double bits = Float
  * </pre>
- */
+*/
 public abstract class ObjectIDOperations {
 
     public static final long FALSE = FALSE_HANDLE;
@@ -114,7 +113,7 @@ public abstract class ObjectIDOperations {
         return big;
     }
 
-    @CompilerDirectives.TruffleBoundary
+    @TruffleBoundary
     public static long verySlowGetObjectID(RubyContext context, DynamicObject object) {
         // TODO(CS): we should specialise on reading this in the #object_id method and anywhere else it's used
         Property property = object.getShape().getProperty(Layouts.OBJECT_ID_IDENTIFIER);

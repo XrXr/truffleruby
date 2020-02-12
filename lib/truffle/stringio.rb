@@ -1,3 +1,5 @@
+# truffleruby_primitives: true
+
 # Copyright (c) 2013, Brian Shirai
 # All rights reserved.
 #
@@ -103,6 +105,9 @@ class StringIO
     self
   end
 
+  # StringIO#inspect should not include the contents of the StringIO
+  alias_method :inspect, :to_s
+
   private def check_readable
     raise IOError, 'not opened for reading' unless @readable
   end
@@ -197,6 +202,7 @@ class StringIO
   end
 
   def binmode
+    set_encoding(Encoding::BINARY)
     self
   end
 
@@ -215,7 +221,7 @@ class StringIO
       d.pos = string.bytesize
     elsif pos > string.bytesize
       replacement = "\000" * (pos - string.bytesize)
-      TrufflePrimitive.string_splice(string, replacement, string.bytesize, 0, string.encoding)
+      Primitive.string_splice(string, replacement, string.bytesize, 0, string.encoding)
       string.byte_append str
       d.pos = string.bytesize
     else
@@ -223,7 +229,7 @@ class StringIO
       if str.bytesize < stop
         stop = str.bytesize
       end
-      TrufflePrimitive.string_splice(string, str, pos, stop, string.encoding)
+      Primitive.string_splice(string, str, pos, stop, string.encoding)
       d.pos += str.bytesize
       string.taint if str.tainted?
     end
@@ -308,7 +314,7 @@ class StringIO
 
     # Truffle: $_ is thread and frame local, so we use a primitive to
     # set it in the caller's frame.
-    Truffle::IOOperations.set_last_line(getline(false, sep, limit), TrufflePrimitive.caller_binding)
+    Truffle::IOOperations.set_last_line(getline(false, sep, limit), Primitive.caller_binding)
   end
 
   def isatty
@@ -339,7 +345,7 @@ class StringIO
 
   def print(*args)
     check_writable
-    args << Truffle::IOOperations.last_line(TrufflePrimitive.caller_binding) if args.empty?
+    args << Truffle::IOOperations.last_line(Primitive.caller_binding) if args.empty?
     write((args << $\).flatten.join)
     nil
   end
@@ -375,11 +381,11 @@ class StringIO
       d.pos = string.bytesize
     elsif pos > string.bytesize
       replacement = "\000" * (pos - string.bytesize)
-      TrufflePrimitive.string_splice(string, replacement, string.bytesize, 0, string.encoding)
+      Primitive.string_splice(string, replacement, string.bytesize, 0, string.encoding)
       string.byte_append char
       d.pos = string.bytesize
     else
-      TrufflePrimitive.string_splice(string, char, pos, char.bytesize, string.encoding)
+      Primitive.string_splice(string, char, pos, char.bytesize, string.encoding)
       d.pos += char.bytesize
     end
 
@@ -442,7 +448,7 @@ class StringIO
     check_readable
     raise EOFError, 'end of file reached' if eof?
 
-    Truffle::IOOperations.set_last_line(getline(true, sep, limit), TrufflePrimitive.caller_binding)
+    Truffle::IOOperations.set_last_line(getline(true, sep, limit), Primitive.caller_binding)
   end
 
   def readlines(sep=$/, limit=Undefined)
@@ -704,7 +710,7 @@ class StringIO
       end
       d.pos += line.bytesize
     elsif sep.empty?
-      if stop = TrufflePrimitive.find_string(string, "\n\n", pos)
+      if stop = Primitive.find_string(string, "\n\n", pos)
         stop += 2
         line = string.byteslice(pos, stop - pos)
         while string.getbyte(stop) == 10
@@ -716,7 +722,7 @@ class StringIO
         d.pos = string.bytesize
       end
     else
-      if stop = TrufflePrimitive.find_string(string, sep, pos)
+      if stop = Primitive.find_string(string, sep, pos)
         if limit && stop - pos >= limit
           stop = pos + limit
         else

@@ -1,5 +1,8 @@
 require 'rbconfig'
 
+# Don't run ruby/spec as root on TruffleRuby
+raise 'ruby/spec is not designed to be run as root on TruffleRuby' if Process.uid == 0
+
 class MSpecScript
 
   def self.child_process?
@@ -94,6 +97,7 @@ class MSpecScript
   ]
 
   set :next, [
+    "spec/ruby/core/file/absolute_path_spec.rb",
     "spec/ruby/core/matchdata/allocate_spec.rb",
   ]
 

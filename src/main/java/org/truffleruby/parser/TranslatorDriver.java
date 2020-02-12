@@ -44,6 +44,8 @@ import org.jcodings.specific.UTF8Encoding;
 import org.truffleruby.RubyContext;
 import org.truffleruby.aot.ParserCache;
 import org.truffleruby.core.LoadRequiredLibrariesNode;
+import org.truffleruby.core.kernel.AutoSplitNode;
+import org.truffleruby.core.kernel.ChompLoopNode;
 import org.truffleruby.core.kernel.KernelGetsNode;
 import org.truffleruby.core.kernel.KernelPrintLastLineNode;
 import org.truffleruby.language.DataNode;
@@ -106,11 +108,8 @@ public class TranslatorDriver {
 
         final StaticScope staticScope = new StaticScope(StaticScope.Type.LOCAL, null);
 
-        /*
-         * Note that jruby-parser will be mistaken about how deep the existing variables are,
-         * but that doesn't matter as we look them up ourselves after being told they're in some
-         * parent scope.
-         */
+        /* Note that jruby-parser will be mistaken about how deep the existing variables are, but that doesn't matter as
+         * we look them up ourselves after being told they're in some parent scope. */
 
         final TranslatorEnvironment parentEnvironment;
 
@@ -193,6 +192,7 @@ public class TranslatorDriver {
             lexicalScope = new LexicalScope(lexicalScope, (DynamicObject) module);
         }
         parseEnvironment.resetLexicalScope(lexicalScope);
+        parseEnvironment.allowTruffleRubyPrimitives = parserConfiguration.allowTruffleRubyPrimitives;
 
         final String methodName = getMethodName(parserContext, parentFrame);
         final SharedMethodInfo sharedMethodInfo = new SharedMethodInfo(
@@ -234,21 +234,24 @@ public class TranslatorDriver {
         context.getCoverageManager().loadingSource(source);
 
         final BodyTranslator translator = new BodyTranslator(
-                currentNode,
                 context,
                 null,
                 environment,
                 source,
                 parserContext,
-                topLevel);
+                currentNode);
 
-        printParseTranslateExecuteMetric("before-translate", context, source);
         RubyNode beginNode = null;
-        if (node.getBeginNode() != null) {
-            beginNode = translator.translateNodeOrNil(sourceIndexLength, node.getBeginNode());
+        RubyNode truffleNode;
+        printParseTranslateExecuteMetric("before-translate", context, source);
+        try {
+            if (node.getBeginNode() != null) {
+                beginNode = translator.translateNodeOrNil(sourceIndexLength, node.getBeginNode());
+            }
+            truffleNode = translator.translateNodeOrNil(sourceIndexLength, node.getBodyNode());
+        } finally {
+            printParseTranslateExecuteMetric("after-translate", context, source);
         }
-        RubyNode truffleNode = translator.translateNodeOrNil(sourceIndexLength, node.getBodyNode());
-        printParseTranslateExecuteMetric("after-translate", context, source);
 
         // Load arguments
 
@@ -283,6 +286,17 @@ public class TranslatorDriver {
                 truffleNode = Translator.sequence(
                         sourceIndexLength,
                         Arrays.asList(truffleNode, new KernelPrintLastLineNode()));
+            }
+            if (context.getOptions().SPLIT_LOOP) {
+                truffleNode = Translator.sequence(
+                        sourceIndexLength,
+                        Arrays.asList(new AutoSplitNode(), truffleNode));
+            }
+
+            if (context.getOptions().CHOMP_LOOP) {
+                truffleNode = Translator.sequence(
+                        sourceIndexLength,
+                        Arrays.asList(new ChompLoopNode(), truffleNode));
             }
             truffleNode = new WhileNode(new WhileNode.WhileRepeatingNode(context, new KernelGetsNode(), truffleNode));
         }

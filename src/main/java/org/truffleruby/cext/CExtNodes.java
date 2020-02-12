@@ -911,7 +911,7 @@ public class CExtNodes {
                 if (method == null) {
                     return null;
                 } else if (method.getName().equals(/* Truffle::CExt. */ "rb_frame_this_func") ||
-                        method.getName().equals(/* Truffle::Interop  */ "execute_without_conversion")) {
+                        method.getName().equals(/* Truffle::Interop */ "execute_without_conversion")) {
                     // TODO CS 11-Mar-17 must have a more precise check to skip these methods
                     return null;
                 } else {
@@ -957,8 +957,8 @@ public class CExtNodes {
         }
     }
 
-    @CoreMethod(names = "string_pointer_size", onSingleton = true, required = 1)
-    public abstract static class StringPointerSizeNode extends CoreMethodArrayArgumentsNode {
+    @Primitive(name = "string_pointer_size")
+    public abstract static class StringPointerSizeNode extends PrimitiveArrayArgumentsNode {
 
         @Specialization(guards = "isRubyString(string)")
         protected int size(DynamicObject string) {
@@ -1010,8 +1010,8 @@ public class CExtNodes {
 
     }
 
-    @CoreMethod(names = "string_pointer_to_native", onSingleton = true, required = 1)
-    public abstract static class StringPointerToNativeNode extends CoreMethodArrayArgumentsNode {
+    @Primitive(name = "string_pointer_to_native")
+    public abstract static class StringPointerToNativeNode extends PrimitiveArrayArgumentsNode {
 
         @Specialization(guards = "isRubyString(string)")
         protected long toNative(DynamicObject string,
@@ -1038,8 +1038,8 @@ public class CExtNodes {
 
     }
 
-    @CoreMethod(names = "string_pointer_is_native?", onSingleton = true, required = 1)
-    public abstract static class StringPointerIsNativeNode extends CoreMethodArrayArgumentsNode {
+    @Primitive(name = "string_pointer_is_native?")
+    public abstract static class StringPointerIsNativeNode extends PrimitiveArrayArgumentsNode {
 
         @Specialization(guards = "isRubyString(string)")
         protected boolean isNative(DynamicObject string) {
@@ -1048,8 +1048,8 @@ public class CExtNodes {
 
     }
 
-    @CoreMethod(names = "string_pointer_read", onSingleton = true, required = 2, lowerFixnum = 2)
-    public abstract static class StringPointerReadNode extends CoreMethodArrayArgumentsNode {
+    @Primitive(name = "string_pointer_read", lowerFixnum = 1)
+    public abstract static class StringPointerReadNode extends PrimitiveArrayArgumentsNode {
 
         @Specialization(guards = "isRubyString(string)")
         protected Object read(DynamicObject string, int index,
@@ -1068,8 +1068,8 @@ public class CExtNodes {
 
     }
 
-    @CoreMethod(names = "string_pointer_write", onSingleton = true, required = 3, lowerFixnum = { 2, 3 })
-    public abstract static class StringPointerWriteNode extends CoreMethodArrayArgumentsNode {
+    @Primitive(name = "string_pointer_write", lowerFixnum = { 1, 2 })
+    public abstract static class StringPointerWriteNode extends PrimitiveArrayArgumentsNode {
 
         @Specialization(guards = "isRubyString(string)")
         protected int write(DynamicObject string, int index, int value,
@@ -1495,13 +1495,10 @@ public class CExtNodes {
         @TruffleBoundary
         protected void addObjectToMarkingService(DynamicObject object, DynamicObject marker) {
             RubyContext aContext = getContext();
-            /*
-             * The code here has to be a little subtle. The marker must be associated with the
-             * object it will act on, but the lambda must not capture the object (and prevent
-             * garbage collection). So the marking function is a lambda that will take the
-             * object as an argument 'o' which will be provided when the marking function is
-             * called by the marking service.
-             */
+            /* The code here has to be a little subtle. The marker must be associated with the object it will act on,
+             * but the lambda must not capture the object (and prevent garbage collection). So the marking function is a
+             * lambda that will take the object as an argument 'o' which will be provided when the marking function is
+             * called by the marking service. */
             getContext().getMarkingService().addMarker(object, (o) -> aContext.send(marker, "call", o));
         }
     }

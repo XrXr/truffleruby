@@ -149,10 +149,8 @@ import com.oracle.truffle.api.source.SourceSection;
 @CoreModule("Kernel")
 public abstract class KernelNodes {
 
-    /**
-     * Check if operands are the same object or call #==.
-     * Known as rb_equal() in MRI. The fact Kernel#=== uses this is pure coincidence.
-     */
+    /** Check if operands are the same object or call #==. Known as rb_equal() in MRI. The fact Kernel#=== uses this is
+     * pure coincidence. */
     @Primitive(name = "object_same_or_equal")
     public abstract static class SameOrEqualNode extends PrimitiveArrayArgumentsNode {
 
@@ -338,13 +336,17 @@ public abstract class KernelNodes {
     @ImportStatic(ShapeCachingGuards.class)
     public abstract static class CopyNode extends UnaryCoreMethodNode {
 
+        public static CopyNode create() {
+            return CopyNodeFactory.create(null);
+        }
+
         @Child private CallDispatchHeadNode allocateNode = CallDispatchHeadNode.createPrivate();
 
-        public abstract DynamicObject executeCopy(VirtualFrame frame, DynamicObject self);
+        public abstract DynamicObject executeCopy(DynamicObject self);
 
         @ExplodeLoop
         @Specialization(guards = "self.getShape() == cachedShape", limit = "getCacheLimit()")
-        protected DynamicObject copyCached(VirtualFrame frame, DynamicObject self,
+        protected DynamicObject copyCached(DynamicObject self,
                 @Cached("self.getShape()") Shape cachedShape,
                 @Cached("getLogicalClass(cachedShape)") DynamicObject logicalClass,
                 @Cached(value = "getCopiedProperties(cachedShape)", dimensions = 1) Property[] properties,
@@ -361,12 +363,12 @@ public abstract class KernelNodes {
         }
 
         @Specialization(guards = "updateShape(self)")
-        protected Object updateShapeAndCopy(VirtualFrame frame, DynamicObject self) {
-            return executeCopy(frame, self);
+        protected Object updateShapeAndCopy(DynamicObject self) {
+            return executeCopy(self);
         }
 
         @Specialization(replaces = { "copyCached", "updateShapeAndCopy" })
-        protected DynamicObject copyUncached(VirtualFrame frame, DynamicObject self) {
+        protected DynamicObject copyUncached(DynamicObject self) {
             final DynamicObject rubyClass = Layouts.BASIC_OBJECT.getLogicalClass(self);
             final DynamicObject newObject = (DynamicObject) allocateNode.call(rubyClass, "__allocate__");
             copyInstanceVariables(self, newObject);
@@ -425,7 +427,7 @@ public abstract class KernelNodes {
     @NodeChild(value = "freeze", type = RubyNode.class)
     public abstract static class CloneNode extends CoreMethodNode {
 
-        @Child private CopyNode copyNode = CopyNodeFactory.create(null);
+        @Child private CopyNode copyNode = CopyNode.create();
         @Child private CallDispatchHeadNode initializeCloneNode = CallDispatchHeadNode.createPrivate();
         @Child private IsFrozenNode isFrozenNode = IsFrozenNode.create();
         @Child private FreezeNode freezeNode;
@@ -438,12 +440,12 @@ public abstract class KernelNodes {
         }
 
         @Specialization(guards = { "!isNil(self)", "!isRubyBignum(self)", "!isRubySymbol(self)" })
-        protected DynamicObject clone(VirtualFrame frame, DynamicObject self, boolean freeze,
+        protected DynamicObject clone(DynamicObject self, boolean freeze,
                 @Cached("createBinaryProfile()") ConditionProfile isSingletonProfile,
                 @Cached("createBinaryProfile()") ConditionProfile freezeProfile,
                 @Cached("createBinaryProfile()") ConditionProfile isFrozenProfile,
                 @Cached("createBinaryProfile()") ConditionProfile isRubyClass) {
-            final DynamicObject newObject = copyNode.executeCopy(frame, self);
+            final DynamicObject newObject = copyNode.executeCopy(self);
 
             // Copy the singleton class if any.
             final DynamicObject selfMetaClass = Layouts.BASIC_OBJECT.getMetaClass(self);
@@ -553,45 +555,21 @@ public abstract class KernelNodes {
     @CoreMethod(names = "dup", taintFrom = 0)
     public abstract static class DupNode extends CoreMethodArrayArgumentsNode {
 
-        @Child private CopyNode copyNode = CopyNodeFactory.create(null);
-        @Child private CallDispatchHeadNode initializeDupNode = CallDispatchHeadNode.createPrivate();
+        @Specialization
+        protected Object dup(Object self,
+                @Cached IsImmutableObjectNode isImmutableObjectNode,
+                @Cached("createBinaryProfile()") ConditionProfile immutableProfile,
+                @Cached CopyNode copyNode,
+                @Cached("createPrivate()") CallDispatchHeadNode initializeDupNode) {
+            if (immutableProfile.profile(isImmutableObjectNode.execute(self))) {
+                return self;
+            }
 
-        @Specialization(guards = "!isSpecialDup(self)")
-        protected DynamicObject dup(VirtualFrame frame, DynamicObject self) {
-            final DynamicObject newObject = copyNode.executeCopy(frame, self);
+            final DynamicObject newObject = copyNode.executeCopy((DynamicObject) self);
 
             initializeDupNode.call(newObject, "initialize_dup", self);
 
             return newObject;
-        }
-
-        @Specialization(guards = "isSpecialDup(self)")
-        protected DynamicObject dupSpecial(DynamicObject self) {
-            return self;
-        }
-
-        @Specialization
-        protected Object dup(boolean self) {
-            return self;
-        }
-
-        @Specialization
-        protected Object dup(int self) {
-            return self;
-        }
-
-        @Specialization
-        protected Object dup(long self) {
-            return self;
-        }
-
-        @Specialization
-        protected Object dup(double self) {
-            return self;
-        }
-
-        protected boolean isSpecialDup(DynamicObject object) {
-            return isNil(object) || RubyGuards.isRubyInteger(object) || RubyGuards.isRubySymbol(object);
         }
 
     }
@@ -1741,12 +1719,12 @@ public abstract class KernelNodes {
             // it should only be considered if we are inside the sleep when Thread#{run,wakeup} is called.
             Layouts.THREAD.getWakeUp(thread).set(false);
 
-            return sleepFor(this, getContext(), thread, durationInMillis);
+            return sleepFor(getContext(), thread, durationInMillis, this);
         }
 
         @TruffleBoundary
-        public static long sleepFor(Node currentNode, RubyContext context, DynamicObject thread,
-                long durationInMillis) {
+        public static long sleepFor(RubyContext context, DynamicObject thread, long durationInMillis,
+                Node currentNode) {
             assert durationInMillis >= 0;
 
             // We want a monotonic clock to measure sleep duration
@@ -1805,7 +1783,7 @@ public abstract class KernelNodes {
                         new Object[]{ arguments, arguments.length, isTaintedNode.executeIsTainted(format), null });
             } catch (FormatException e) {
                 exceptionProfile.enter();
-                throw FormatExceptionTranslator.translate(this, e);
+                throw FormatExceptionTranslator.translate(getContext(), this, e);
             }
 
             return finishFormat(cachedFormatLength, result);
@@ -1828,7 +1806,7 @@ public abstract class KernelNodes {
                         new Object[]{ arguments, arguments.length, isTaintedNode.executeIsTainted(format), null });
             } catch (FormatException e) {
                 exceptionProfile.enter();
-                throw FormatExceptionTranslator.translate(this, e);
+                throw FormatExceptionTranslator.translate(getContext(), this, e);
             }
 
             return finishFormat(Layouts.STRING.getRope(format).byteLength(), result);

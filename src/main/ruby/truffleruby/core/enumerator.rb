@@ -52,13 +52,13 @@ class Enumerator
     size = nil
 
     if block_given?
-      unless TrufflePrimitive.undefined? receiver_or_size
+      unless Primitive.undefined? receiver_or_size
         size = receiver_or_size
       end
 
       receiver = Generator.new(&block)
     else
-      if TrufflePrimitive.undefined? receiver_or_size
+      if Primitive.undefined? receiver_or_size
         raise ArgumentError, 'Enumerator#initialize requires a block when called without arguments'
       end
 
@@ -114,7 +114,7 @@ class Enumerator
     idx = 0
 
     each do
-      o = TrufflePrimitive.single_block_arg
+      o = Primitive.single_block_arg
       val = yield(o, idx)
       idx += 1
       val
@@ -125,7 +125,7 @@ class Enumerator
     return to_enum(:each_with_object, memo) { size } unless block_given?
 
     each do
-      obj = TrufflePrimitive.single_block_arg
+      obj = Primitive.single_block_arg
       yield obj, memo
     end
     memo
@@ -196,7 +196,7 @@ class Enumerator
     return to_enum(:with_index, offset) { size } unless block_given?
 
     each do
-      o = TrufflePrimitive.single_block_arg
+      o = Primitive.single_block_arg
       val = yield(o, offset)
       offset += 1
       val
@@ -258,7 +258,7 @@ class Enumerator
 
     def initialize(receiver, size=nil)
       raise ArgumentError, 'Lazy#initialize requires a block' unless block_given?
-      TrufflePrimitive.check_frozen self
+      Primitive.check_frozen self
 
       super(size) do |yielder, *each_args|
         begin
@@ -385,7 +385,7 @@ class Enumerator
     end
 
     def grep(pattern, &block)
-      binding = block ? block.binding : TrufflePrimitive.caller_binding
+      binding = block ? block.binding : Primitive.caller_binding
 
       Lazy.new(self, nil) do |yielder, *args|
         val = args.length >= 2 ? args : args.first
@@ -403,7 +403,7 @@ class Enumerator
     end
 
     def grep_v(pattern, &block)
-      binding = block ? block.binding : TrufflePrimitive.caller_binding
+      binding = block ? block.binding : Primitive.caller_binding
 
       Lazy.new(self, nil) do |yielder, *args|
         val = args.length >= 2 ? args : args.first
@@ -435,8 +435,8 @@ class Enumerator
       Lazy.new(self, nil) do |yielder, *args|
         yield_ret = yield(*args)
 
-        if Truffle::Type.object_respond_to?(yield_ret, :force) &&
-           Truffle::Type.object_respond_to?(yield_ret, :each)
+        if Primitive.object_respond_to?(yield_ret, :force, false) &&
+           Primitive.object_respond_to?(yield_ret, :each, false)
           yield_ret.each do |v|
             yielder.yield v
           end
@@ -463,7 +463,7 @@ class Enumerator
         case
         when array
           array
-        when Truffle::Type.object_respond_to?(list, :each)
+        when Primitive.object_respond_to?(list, :each, false)
           list.to_enum :each
         else
           raise TypeError, "wrong argument type #{list.class} (must respond to :each)"
@@ -562,11 +562,108 @@ class Enumerator
 end
 
 class Enumerator::ArithmeticSequence < Enumerator
+
+  def initialize(obj, method_name, enum_begin, enum_end, step, exclude_end)
+    @begin = enum_begin
+    @end =  enum_end
+    @step = step
+    @exclude_end = exclude_end
+    super(obj, method_name)
+  end
+
+  attr_reader :begin, :end, :step
+
+  def exclude_end?
+    @exclude_end
+  end
+
+  def last(n=undefined)
+    from, to, step, exclude_end  = @begin, @end, @step, @exclude_end
+
+    raise RangeError, 'cannot get the last element of endless arithmetic sequence' if to.nil?
+
+    len = (to - from).div(step)
+    if len.negative?
+      return Primitive.undefined?(n) ? nil : []
+    end
+    last = from + (step * len)
+    if exclude_end && last == to
+      last = last - step
+    end
+
+    return last if Primitive.undefined?(n)
+
+    n = Truffle::Type.rb_to_int(n) if !Primitive.object_kind_of?(n, Integer)
+
+    raise ArgumentError, 'negative array size' if n < 0
+
+    ary = Array.new
+    last.step(first, -step) do |e|
+      ary.unshift(e)
+      break if ary.size == n
+    end
+    ary
+  end
+
+  def inspect
+    if Primitive.object_kind_of?(@object, Range)
+      step = @step == 1 ? '' : "(#{@step})"
+      to = @end.to_s
+      exclude_end = exclude_end? ? '.' : ''
+      "((#{@begin}..#{exclude_end}#{to}).step#{step})"
+    else
+      if @step == 1
+        if @end.nil?
+          "(#{@begin}.step)"
+        else
+          "(#{@begin}.step(#{@end}))"
+        end
+      else
+        "(#{@begin}.step(#{@end}, #{@step}))"
+      end
+    end
+  end
+
+  def ==(other)
+    Primitive.object_kind_of?(other, Enumerator::ArithmeticSequence) &&
+        @begin == other.begin &&
+        @end == other.end &&
+        @exclude_end == other.exclude_end? &&
+        @step == other.step
+  end
+  alias_method :===, :==
+  alias_method :eql?, :==
+
+  def hash
+    val = Primitive.vm_hash_start(@exclude_end ? 1 : 0)
+    val = Primitive.vm_hash_update val, @begin.hash
+    val = Primitive.vm_hash_update val, @end.hash
+    val = Primitive.vm_hash_update val, @step.hash
+    Primitive.vm_hash_end val
+  end
+
+  def each(&block)
+    return self if block.nil?
+    from, to, step, exclude_end  = @begin, @end, @step, @exclude_end
+    from.step(to: to, by: step) do |val|
+      break if exclude_end && (step.negative? ? val <= to : val >= to)
+      yield val
+    end
+    self
+  end
+
+  def size
+    from, to, step, exclude_end  = @begin, @end, @step, @exclude_end
+    unless Primitive.object_kind_of?(from, Float) || Primitive.object_kind_of?(to, Float) || Primitive.object_kind_of?(step, Float)
+      step = Truffle::Type.rb_to_int(step)
+    end
+    Truffle::NumericOperations.step_size(from, to, step, true, exclude_end)
+  end
 end
 
 class Enumerator::Chain < Enumerator
   def initialize(*args, &block)
-    TrufflePrimitive.check_frozen self
+    Primitive.check_frozen self
     @enums = args.freeze
     @pos = -1
     self

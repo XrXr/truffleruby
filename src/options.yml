@@ -65,7 +65,7 @@ EXPERT:
     # C extension options
     CEXTS: [cexts, boolean, true, Enable use of C extensions]
     CEXT_LOCK: [cexts-lock, boolean, true, Use a Global Lock when running C extensions]
-    CEXTS_KEEP_HANDLES_ALIVE: [keep-handles-alive, boolean, true, Keep handles for value wrappers alive forever]
+    CEXTS_KEEP_HANDLES_ALIVE: [keep-handles-alive, boolean, false, Keep handles for value wrappers alive forever]
 
     # Debugging the values of options
     OPTIONS_LOG: [options-log, boolean, false, Log the final value of all options]
@@ -81,8 +81,10 @@ INTERNAL: # Options for debugging the TruffleRuby implementation
   EXPERIMENTAL:
     # Options corresponding to MRI options, which are only meaningful when using the TruffleRuby launcher
     ARGV_GLOBALS: [[argv-globals, -s], boolean, false, Parse options in script argv into global variables]
+    CHOMP_LOOP: [[chomp-loop, -l], boolean, false, 'enable line ending processing']
     GETS_LOOP: [[gets-loop, -n], boolean, false, 'assume while gets(); ... end loop around your script']
     PRINT_LOOP: [[print-loop, -p], boolean, false, 'assume loop like -n but print line also like sed']
+    SPLIT_LOOP: [[split-loop, -a], boolean, false, 'autosplit mode with -n or -p (splits $_ into $F)']
     IGNORE_LINES_BEFORE_RUBY_SHEBANG: [[ignore-lines-before-ruby-shebang, -x], boolean, false, "strip off text before #!ruby line"]
     SYNTAX_CHECK: [[syntax-check, -c], boolean, false, Do not execute just check syntax]
 

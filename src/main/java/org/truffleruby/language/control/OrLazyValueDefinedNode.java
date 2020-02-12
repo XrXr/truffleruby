@@ -10,7 +10,6 @@
 package org.truffleruby.language.control;
 
 import org.truffleruby.core.cast.BooleanCastNode;
-import org.truffleruby.core.cast.BooleanCastNodeGen;
 import org.truffleruby.language.RubyContextSourceNode;
 import org.truffleruby.language.RubyNode;
 
@@ -19,22 +18,22 @@ import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 
-/**
- * OrLazyValueDefinedNode is used as the 'or' node for ||=, because we know from idiomatic Ruby usage that this is
- * often used to lazy initialize a value. In that case normal counting profiling gives a misleading result. With the
- * RHS having been executed once (the lazy initialization) it will be compiled expecting it to be used again. We know
- * that it's unlikely to be used again, so only compile it in when it's been used more than once, by using a small
- * saturating counter.
- */
+/** OrLazyValueDefinedNode is used as the 'or' node for ||=, because we know from idiomatic Ruby usage that this is
+ * often used to lazy initialize a value. In that case normal counting profiling gives a misleading result. With the RHS
+ * having been executed once (the lazy initialization) it will be compiled expecting it to be used again. We know that
+ * it's unlikely to be used again, so only compile it in when it's been used more than once, by using a small saturating
+ * counter. */
 public class OrLazyValueDefinedNode extends RubyContextSourceNode {
 
     @Child private RubyNode left;
     @Child private RubyNode right;
 
-    @Child private BooleanCastNode leftCast;
+    @Child private BooleanCastNode leftCast = BooleanCastNode.create();
 
     private enum RightUsage {
-        NEVER, ONCE, MANY;
+        NEVER,
+        ONCE,
+        MANY;
 
         public RightUsage next() {
             if (this == NEVER) {
@@ -59,29 +58,17 @@ public class OrLazyValueDefinedNode extends RubyContextSourceNode {
     public Object execute(VirtualFrame frame) {
         final Object leftValue = left.execute(frame);
 
-        if (conditionProfile.profile(castToBoolean(leftValue))) {
+        if (conditionProfile.profile(leftCast.executeToBoolean(leftValue))) {
             return leftValue;
         } else {
-            if (CompilerDirectives.inInterpreter()) {
-                // Count how many times the RHS is used
-                rightUsage = rightUsage.next();
-            }
-
             if (rightUsage != RightUsage.MANY) {
                 // Don't compile the RHS of a lazy initialization unless it has been used many times
                 CompilerDirectives.transferToInterpreterAndInvalidate();
+                rightUsage = rightUsage.next();
             }
 
             return right.execute(frame);
         }
-    }
-
-    private boolean castToBoolean(final Object value) {
-        if (leftCast == null) {
-            CompilerDirectives.transferToInterpreterAndInvalidate();
-            leftCast = insert(BooleanCastNodeGen.create(null));
-        }
-        return leftCast.executeToBoolean(value);
     }
 
 }

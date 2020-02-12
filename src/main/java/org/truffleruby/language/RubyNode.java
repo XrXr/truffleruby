@@ -22,8 +22,9 @@ import org.truffleruby.core.rope.Rope;
 import org.truffleruby.core.string.CoreStrings;
 import org.truffleruby.stdlib.CoverageManager;
 
-import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.instrumentation.GenerateWrapper;
 import com.oracle.truffle.api.instrumentation.InstrumentableNode;
 import com.oracle.truffle.api.instrumentation.ProbeNode;
 import com.oracle.truffle.api.instrumentation.StandardTags;
@@ -33,13 +34,11 @@ import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.object.DynamicObject;
 import com.oracle.truffle.api.source.SourceSection;
 
-/**RubyNode has source, execute, and is instrument-able.
- * However, it does not have any fields which would prevent using @GenerateUncached.
- * It should never be subclassed directly, either use {@link RubyContextSourceNode}
- * or {@link RubySourceNode}.
- * SourceRubyNode is not defined since there was no use for it for now.
- * Nodes having context are described by {@link WithContext}.
- * There is also {@link RubyContextNode} if context is needed but source is not. */
+/** RubyNode has source, execute, and is instrument-able. However, it does not have any fields which would prevent
+ * using @GenerateUncached. It should never be subclassed directly, either use {@link RubyContextSourceNode} or
+ * {@link RubySourceNode}. SourceRubyNode is not defined since there was no use for it for now. Nodes having context are
+ * described by {@link WithContext}. There is also {@link RubyContextNode} if context is needed but source is not. */
+@GenerateWrapper
 public abstract class RubyNode extends RubyBaseNode implements InstrumentableNode {
 
     public static final RubyNode[] EMPTY_ARRAY = new RubyNode[]{};
@@ -51,25 +50,22 @@ public abstract class RubyNode extends RubyBaseNode implements InstrumentableNod
 
     protected static final int NO_SOURCE = -1;
 
-    protected RubyNode() {
-        if (isAdoptable()) {
-            // initialize only if the node is not the Uncached instance
-            setSourceCharIndex(NO_SOURCE);
-        }
-    }
-
-    abstract public Object isDefined(VirtualFrame frame, RubyContext context);
 
     // Fundamental execute methods
-
     abstract public Object execute(VirtualFrame frame);
 
-    /**
-     * This method does not start with "execute" on purpose, so the Truffle DSL does not generate
-     * useless copies of this method which would increase the number of runtime compilable methods.
-     */
+    /** This method does not start with "execute" on purpose, so the Truffle DSL does not generate useless copies of
+     * this method which would increase the number of runtime compilable methods. */
     public void doExecuteVoid(VirtualFrame frame) {
         execute(frame);
+    }
+
+    // Declared abstract here so the instrumentation wrapper delegates it
+    abstract public Object isDefined(VirtualFrame frame, RubyContext context);
+
+    protected static Object defaultIsDefined(RubyContext context, Node currentNode) {
+        assert !(currentNode instanceof WrapperNode);
+        return context.getCoreStrings().EXPRESSION.createInstance();
     }
 
     // Source
@@ -116,7 +112,7 @@ public abstract class RubyNode extends RubyBaseNode implements InstrumentableNod
     }
 
     @Override
-    @CompilerDirectives.TruffleBoundary
+    @TruffleBoundary
     public SourceSection getSourceSection() {
         if (!hasSource()) {
             return null;
@@ -224,7 +220,7 @@ public abstract class RubyNode extends RubyBaseNode implements InstrumentableNod
 
     @Override
     public WrapperNode createWrapper(ProbeNode probe) {
-        return new RubyNodeWrapperWithIsDefined(this, probe);
+        return new RubyNodeWrapper(this, probe);
     }
 
     public interface WithContext {

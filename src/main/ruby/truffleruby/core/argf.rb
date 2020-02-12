@@ -70,6 +70,8 @@ module Truffle
       @init = false
       @use_stdin_only = false
       @encoding_args = nil
+      @backup_filename = nil
+      @external = nil
     end
 
     #
@@ -292,7 +294,7 @@ module Truffle
           next
         end
 
-        Truffle::IOOperations.set_last_line(line, TrufflePrimitive.caller_binding) if line
+        Truffle::IOOperations.set_last_line(line, Primitive.caller_binding) if line
         @last_lineno = @lineno += 1
         return line
       end

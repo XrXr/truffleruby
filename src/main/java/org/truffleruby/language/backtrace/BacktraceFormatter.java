@@ -42,10 +42,8 @@ public class BacktraceFormatter {
         INTERLEAVE_JAVA
     }
 
-    /**
-     * Flags for a backtrace exposed to Ruby via #caller, #caller_locations, Exception#backtrace and
-     * Thread#backtrace.
-     */
+    /** Flags for a backtrace exposed to Ruby via #caller, #caller_locations, Exception#backtrace and
+     * Thread#backtrace. */
     public static final EnumSet<FormattingFlags> USER_BACKTRACE_FLAGS = EnumSet
             .of(FormattingFlags.OMIT_FROM_PREFIX, FormattingFlags.OMIT_EXCEPTION);
 
@@ -100,7 +98,8 @@ public class BacktraceFormatter {
         final Object message = context.send(
                 context.getCoreLibrary().truffleExceptionOperationsModule,
                 "message_and_class",
-                rubyException);
+                rubyException,
+                false);
         final Object messageString;
         if (RubyGuards.isRubyString(message)) {
             messageString = StringOperations.getString((DynamicObject) message);

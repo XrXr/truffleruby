@@ -118,7 +118,7 @@ public class Options {
     public final boolean CEXTS;
     /** --cexts-lock=true */
     public final boolean CEXT_LOCK;
-    /** --keep-handles-alive=true */
+    /** --keep-handles-alive=false */
     public final boolean CEXTS_KEEP_HANDLES_ALIVE;
     /** --options-log=false */
     public final boolean OPTIONS_LOG;
@@ -134,10 +134,14 @@ public class Options {
     public final boolean CEXTS_LOG_WARNINGS;
     /** --argv-globals=false */
     public final boolean ARGV_GLOBALS;
+    /** --chomp-loop=false */
+    public final boolean CHOMP_LOOP;
     /** --gets-loop=false */
     public final boolean GETS_LOOP;
     /** --print-loop=false */
     public final boolean PRINT_LOOP;
+    /** --split-loop=false */
+    public final boolean SPLIT_LOOP;
     /** --ignore-lines-before-ruby-shebang=false */
     public final boolean IGNORE_LINES_BEFORE_RUBY_SHEBANG;
     /** --syntax-check=false */
@@ -328,8 +332,10 @@ public class Options {
         CEXTS_LOG_LOAD = options.get(OptionsCatalog.CEXTS_LOG_LOAD_KEY);
         CEXTS_LOG_WARNINGS = options.get(OptionsCatalog.CEXTS_LOG_WARNINGS_KEY);
         ARGV_GLOBALS = options.get(OptionsCatalog.ARGV_GLOBALS_KEY);
+        CHOMP_LOOP = options.get(OptionsCatalog.CHOMP_LOOP_KEY);
         GETS_LOOP = options.get(OptionsCatalog.GETS_LOOP_KEY);
         PRINT_LOOP = options.get(OptionsCatalog.PRINT_LOOP_KEY);
+        SPLIT_LOOP = options.get(OptionsCatalog.SPLIT_LOOP_KEY);
         IGNORE_LINES_BEFORE_RUBY_SHEBANG = options.get(OptionsCatalog.IGNORE_LINES_BEFORE_RUBY_SHEBANG_KEY);
         SYNTAX_CHECK = options.get(OptionsCatalog.SYNTAX_CHECK_KEY);
         ARGV_GLOBAL_VALUES = options.get(OptionsCatalog.ARGV_GLOBAL_VALUES_KEY);
@@ -512,10 +518,14 @@ public class Options {
                 return CEXTS_LOG_WARNINGS;
             case "ruby.argv-globals":
                 return ARGV_GLOBALS;
+            case "ruby.chomp-loop":
+                return CHOMP_LOOP;
             case "ruby.gets-loop":
                 return GETS_LOOP;
             case "ruby.print-loop":
                 return PRINT_LOOP;
+            case "ruby.split-loop":
+                return SPLIT_LOOP;
             case "ruby.ignore-lines-before-ruby-shebang":
                 return IGNORE_LINES_BEFORE_RUBY_SHEBANG;
             case "ruby.syntax-check":
