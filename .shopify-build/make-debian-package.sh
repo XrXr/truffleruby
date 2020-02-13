@@ -2,10 +2,14 @@
 
 set -exuo pipefail
 
+# Intentionally use a subshell to preserve our environment.
+# We only care about the tar extraction in the script.
+bash .shopify-build/use-truffleruby.sh
+
 pushd .shopify-build
 mkdir -p truffle/DEBIAN
-mkdir -p truffle/opt/truffleruby
-mv build/* truffle/opt/truffleruby
+mkdir -p truffle/opt
+mv package truffle/opt/truffleruby
 
 RUBY_VERSION=$(truffle/opt/truffleruby/bin/ruby -e "puts RUBY_VERSION")
 SHORT_COMMIT_SHA=$(echo "${BUILDKITE_COMMIT}" | head -c 7)
